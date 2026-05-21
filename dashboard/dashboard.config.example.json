@@ -1,0 +1,7 @@
+{
+  "ticketDbPaths": {
+    "my-project": "./projects/my-project/tickets.db"
+  },
+  "apiPort": 8765,
+  "healthChecks": []
+}

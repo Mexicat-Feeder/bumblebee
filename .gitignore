@@ -27,6 +27,13 @@ Thumbs.db
 # Test fixtures with node_modules
 engine/tests/fixtures/test-app/node_modules/
 
+# Dashboard
+dashboard/ui/node_modules/
+dashboard/ui/.svelte-kit/
+dashboard/ui/build/
+dashboard/api/__pycache__/
+dashboard/api/static/
+
 # Mock engine (dev only)
 mock-engine/
 

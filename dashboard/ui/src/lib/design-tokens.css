@@ -1,0 +1,55 @@
+:root {
+  /* Backgrounds */
+  --color-bg-base: #0B1220;
+  --color-bg-panel: #162033;
+  --color-bg-panel-raised: #1B2738;
+  --color-bg-sidebar: #0E1828;
+  --color-bg-terminal: #111827;
+
+  /* Accent */
+  --color-accent-primary: #3ABEFF;
+  --color-accent-complete: #2DE6E6;
+  --color-accent-worker: #59E38A;
+  --color-accent-cpu: #4AAEFF;
+  --color-accent-gpu: #FF9B2F;
+  --color-accent-vram: #D66BFF;
+  --color-accent-npu: #F0C040;
+
+  /* Alerts */
+  --color-alert-blocked: #FF6B6B;
+  --color-alert-warning: #FFAA4A;
+  --color-alert-critical: #FF4444;
+
+  /* Text */
+  --color-text-primary: #F3F7FB;
+  --color-text-secondary: #B9C2CC;
+  --color-text-muted: #6B7A8D;
+  --color-text-terminal: #A8C4D8;
+
+  /* Status */
+  --color-status-pass: #59E38A;
+  --color-status-fail: #FF6B6B;
+  --color-status-escalated: #FF9B2F;
+  --color-status-running: #3ABEFF;
+
+  /* Typography */
+  --font-ui: 'Inter', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+  --text-kpi: 2.5rem;
+  --text-kpi-label: 0.75rem;
+  --text-section: 0.875rem;
+  --text-body: 0.875rem;
+  --text-mono: 0.8rem;
+  --text-badge: 0.625rem;
+
+  /* Spacing */
+  --spacing-panel-gap: 20px;
+  --spacing-panel-pad: 24px 28px;
+  --spacing-kpi-gap: 20px;
+  --spacing-row-gap: 20px;
+
+  /* Radii */
+  --radius-panel: 12px;
+  --radius-badge: 4px;
+  --radius-pill: 999px;
+}
