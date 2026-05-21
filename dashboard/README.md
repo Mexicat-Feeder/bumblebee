@@ -61,13 +61,24 @@ Edit `dashboard.config.json`:
 
 ## Running
 
+### Quick start (recommended)
+
+From the `dashboard/` directory:
+
+```powershell
+.\start.ps1
+```
+
+This will install deps, build the frontend (if needed), and start the server on port 8765.
+Pass `-Port 9000` to use a different port.
+
 ### Development
 
 Start the API server:
 
 ```bash
 # From the dashboard/ directory
-uvicorn api.main:app --port 8765 --reload
+python -m uvicorn api.main:app --port 8765 --reload
 ```
 
 Start the UI dev server (in a separate terminal):
@@ -88,13 +99,12 @@ cd ui
 npm run build
 ```
 
-This outputs static files to `ui/build/`. The API serves these automatically from `api/static/`
-when you copy or symlink `ui/build/` → `api/static/`.
+This outputs static files to `ui/build/`. The API serves them directly — no symlinks needed.
 
-Then run only the API server:
+Then run the server:
 
 ```bash
-uvicorn api.main:app --port 8765
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8765
 ```
 
 Open `http://localhost:8765` in your browser.

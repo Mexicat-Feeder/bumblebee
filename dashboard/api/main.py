@@ -42,7 +42,7 @@ async def startup():
 
 # --- Serve built frontend (production mode) ---
 # Mount SvelteKit static assets first (/_app, /favicon, etc.)
-_build = Path(__file__).resolve().parent.parent / "dashboard-ui" / "build"
+_build = Path(__file__).resolve().parent.parent / "ui" / "build"
 if _build.exists():
     # Mount static asset directories
     for _static_dir in ["_app", "assets"]:
