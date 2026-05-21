@@ -1,0 +1,33 @@
+{
+  "engine_root": "../../engine",
+  "project_root": ".",
+  "workspace_root": "../..",
+  "deliverable_root": "./output",
+  "db_path": "./tickets.db",
+  "artifacts_dir": "./output/artifacts",
+  "checks_dir": "./output/checks",
+  "qa_reports_dir": "./output/qa-reports",
+
+  "api_base_url": "",
+  "api_key": "",
+
+  "forge_agent": "forge",
+  "models": {
+    "forge": "gpt-4o",
+    "vision": "gpt-4o"
+  },
+
+  "forge_timeout_seconds": 300,
+  "cycle_interval_seconds": 2,
+  "max_dispatch_attempts": 3,
+
+  "tech_stack": "TypeScript/React 18 with Vite",
+
+  "ui_check": {
+    "launch_cmd": ["npm", "run", "dev"],
+    "cwd": "./output",
+    "url": "http://127.0.0.1:5173",
+    "ui_port": 5173,
+    "startup_wait_seconds": 10
+  }
+}

@@ -1,0 +1,6 @@
+# Bumblebee has no external dependencies.
+# The engine uses only Python standard library (json, sqlite3, urllib, pathlib, etc.)
+#
+# Optional: if you want to run the smoke test with screenshots
+# pip install playwright
+# playwright install chromium

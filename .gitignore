@@ -1,0 +1,40 @@
+# Project data (user-specific)
+projects/
+_local/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# SQLite
+*.db
+*.db-shm
+*.db-wal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test fixtures with node_modules
+engine/tests/fixtures/test-app/node_modules/
+
+# Mock engine (dev only)
+mock-engine/
+
+# Project-specific integration tests (depend on local project data)
+engine/tests/_check_*.py
+engine/tests/test_remy_*.py
+engine/tests/test_gate1_integration.py
+engine/tests/test_multi_gate.py
+engine/tests/test_three_categories.py
+engine/tests/test_unattended_*.py
+engine/tests/test_classify.py
