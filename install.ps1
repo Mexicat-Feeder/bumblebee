@@ -77,10 +77,15 @@ $python = $null
 foreach ($cmd in @("python3", "python")) {
     $found = Get-Command $cmd -ErrorAction SilentlyContinue
     if ($found) {
-        $ver = & $cmd --version 2>&1
-        if ($ver -match "3\.(1[1-9]|[2-9]\d)") {
-            $python = $cmd
-            break
+        try {
+            $ver = & $cmd --version 2>&1
+            if ($ver -match "3\.(1[1-9]|[2-9]\d)") {
+                $python = $cmd
+                break
+            }
+        }
+        catch {
+            # Windows Store alias or broken install, skip
         }
     }
 }
