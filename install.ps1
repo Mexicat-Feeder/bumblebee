@@ -116,7 +116,7 @@ if (-not $nodeCmd) {
     $env:PATH = "$env:PATH;C:\Program Files\nodejs"
 }
 
-$nodeVer = node --version 2>&1
+try { $nodeVer = node --version 2>&1 } catch { $nodeVer = "unknown" }
 Write-Host "  Found: Node.js $nodeVer" -ForegroundColor Green
 
 # ---------------------------------------------------------------------------
@@ -126,15 +126,19 @@ Write-Host "  Found: Node.js $nodeVer" -ForegroundColor Green
 Write-Host "[4/6] Installing dependencies..." -ForegroundColor Yellow
 
 Write-Host "  Python packages..." -ForegroundColor Yellow
+$ErrorActionPreference = "Continue"
 & $python -m pip install -q --upgrade pip 2>&1 | Out-Null
 & $python -m pip install -q -r (Join-Path $bumblebeeRoot "requirements.txt") 2>&1 | Out-Null
 & $python -m pip install -q -r (Join-Path $bumblebeeRoot "dashboard\api\requirements.txt") 2>&1 | Out-Null
+$ErrorActionPreference = "Stop"
 
 Write-Host "  Dashboard frontend..." -ForegroundColor Yellow
 $uiDir = Join-Path $bumblebeeRoot "dashboard\ui"
 Set-Location $uiDir
+$ErrorActionPreference = "Continue"
 npm install --silent 2>&1 | Out-Null
 npm run build 2>&1 | Out-Null
+$ErrorActionPreference = "Stop"
 
 $buildDir = Join-Path $uiDir "build"
 if (-not (Test-Path $buildDir)) {
