@@ -6,6 +6,10 @@
   import PrdUpload from './intake/PrdUpload.svelte';
   import ImageUpload from './intake/ImageUpload.svelte';
   import SettingsSection from './intake/SettingsSection.svelte';
+  import AIConfigSection from './intake/AIConfigSection.svelte';
+  import QAChat from './intake/QAChat.svelte';
+  import DecompReview from './intake/DecompReview.svelte';
+  import ExecutorControl from './intake/ExecutorControl.svelte';
   import QAOutputPanels from './intake/QAOutputPanels.svelte';
   import ActionButtons from './intake/ActionButtons.svelte';
   import ErrorBanner from './intake/ErrorBanner.svelte';
@@ -16,6 +20,18 @@
   let formDescription = '';
   let formCodeFolder = '';
   let formTargetSystem = 'local';
+  // AI config state
+  let aiQaModelSource = 'lemonade';
+  let aiQaModelId = '';
+  let aiDecompModelSource = 'lemonade';
+  let aiDecompModelId = '';
+  let aiForgeModelSource = 'custom';
+  let aiForgeModelId = '';
+  let aiVisionModelSource = 'custom';
+  let aiVisionModelId = '';
+  let aiCustomApiBaseUrl = '';
+  let aiCustomApiKey = '';
+  let aiConfigLoaded = false;
   let prdFilename: string | null = null;
   let prdText = '';
   let refImages: Array<{ url: string; name: string }> = [];
@@ -58,6 +74,11 @@
         formCodeFolder = '';
         formTargetSystem = 'local';
       }
+      // Load global AI config defaults on first mount
+      if (!aiConfigLoaded) {
+        loadAIConfig();
+        aiConfigLoaded = true;
+      }
       // Reset transient state on any project switch
       prdFilename = null;
       prdText = '';
@@ -87,6 +108,41 @@
 
   function onSettingsChange(e: CustomEvent<{ field: string; value: string }>) {
     if (e.detail.field === 'targetSystem') formTargetSystem = e.detail.value;
+  }
+
+  function onAIConfigChange(e: CustomEvent<{ field: string; value: string }>) {
+    const { field, value } = e.detail;
+    if (field === 'qaModelSource') aiQaModelSource = value;
+    else if (field === 'qaModelId') aiQaModelId = value;
+    else if (field === 'decompModelSource') aiDecompModelSource = value;
+    else if (field === 'decompModelId') aiDecompModelId = value;
+    else if (field === 'forgeModelSource') aiForgeModelSource = value;
+    else if (field === 'forgeModelId') aiForgeModelId = value;
+    else if (field === 'visionModelSource') aiVisionModelSource = value;
+    else if (field === 'visionModelId') aiVisionModelId = value;
+    else if (field === 'customApiBaseUrl') aiCustomApiBaseUrl = value;
+    else if (field === 'customApiKey') aiCustomApiKey = value;
+  }
+
+  async function loadAIConfig() {
+    try {
+      const resp = await fetch('/api/ai/config');
+      if (resp.ok) {
+        const data = await resp.json();
+        aiQaModelSource = data.qa_model_source || 'lemonade';
+        aiQaModelId = data.qa_model_id || '';
+        aiDecompModelSource = data.decomp_model_source || 'lemonade';
+        aiDecompModelId = data.decomp_model_id || '';
+        aiForgeModelSource = data.forge_model_source || 'custom';
+        aiForgeModelId = data.forge_model_id || '';
+        aiVisionModelSource = data.vision_model_source || 'custom';
+        aiVisionModelId = data.vision_model_id || '';
+        aiCustomApiBaseUrl = data.custom_api_base_url || '';
+        // Don't load masked key back
+      }
+    } catch {
+      // Will use defaults
+    }
   }
 
   async function onPrdFile(e: CustomEvent<{ file: File }>) {
@@ -158,6 +214,30 @@
 
   async function createProject(): Promise<string | null> {
     try {
+      // Save AI config as global defaults
+      const aiConfig: Record<string, string> = {
+        qa_model_source: aiQaModelSource,
+        qa_model_id: aiQaModelId,
+        decomp_model_source: aiDecompModelSource,
+        decomp_model_id: aiDecompModelId,
+        forge_model_source: aiForgeModelSource,
+        forge_model_id: aiForgeModelId,
+        vision_model_source: aiVisionModelSource,
+        vision_model_id: aiVisionModelId,
+        custom_api_base_url: aiCustomApiBaseUrl,
+      };
+      // Only include key if user entered a new one (not empty)
+      if (aiCustomApiKey) {
+        aiConfig.custom_api_key = aiCustomApiKey;
+      }
+      try {
+        await fetch('/api/ai/config', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(aiConfig)
+        });
+      } catch { /* non-fatal */ }
+
       const resp = await fetch('/api/intake/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -166,7 +246,8 @@
           slug: formSlug,
           description: formDescription,
           deliverable_root: formCodeFolder,
-          target_system: formTargetSystem
+          target_system: formTargetSystem,
+          ai_config: aiConfig
         })
       });
       if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
@@ -212,7 +293,12 @@
         slug = await createProject();
         if (!slug) { actionLoading = false; return; }
       }
-      const resp = await fetch(`/api/intake/projects/${slug}/begin-qa`, { method: 'POST' });
+      // Transition to qa_pending — starts the Q&A chat flow
+      const resp = await fetch(`/api/intake/projects/${slug}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'qa_pending' })
+      });
       if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
       projectsStore.fetchProjects();
     } catch (err: any) {
@@ -352,17 +438,43 @@
       disabled={formDisabled}
       on:change={onSettingsChange}
     />
+
+    <AIConfigSection
+      qaModelSource={aiQaModelSource}
+      qaModelId={aiQaModelId}
+      decompModelSource={aiDecompModelSource}
+      decompModelId={aiDecompModelId}
+      forgeModelSource={aiForgeModelSource}
+      forgeModelId={aiForgeModelId}
+      visionModelSource={aiVisionModelSource}
+      visionModelId={aiVisionModelId}
+      customApiBaseUrl={aiCustomApiBaseUrl}
+      customApiKey={aiCustomApiKey}
+      disabled={formDisabled}
+      on:change={onAIConfigChange}
+    />
   </div>
 
-  <!-- Q&A output panels (shown after Q&A starts) -->
-  {#if project && ['qa_pending', 'qa_complete', 'approved', 'scaffolded', 'running'].includes(status)}
-    <QAOutputPanels
-      {status}
-      techStack={project.tech_stack}
-      visualSpec={null}
-      architectureSummary={null}
-      lastPolled={null}
+  <!-- Q&A Chat (shown after project is created and in qa_pending status) -->
+  {#if project && ['qa_pending', 'qa_complete'].includes(status)}
+    <QAChat
+      slug={project.slug}
+      disabled={status === 'qa_complete'}
+      on:finished={() => projectsStore.fetchProjects()}
     />
+  {/if}
+
+  <!-- Decomposition review (shown after Q&A is complete) -->
+  {#if project && status === 'qa_complete'}
+    <DecompReview
+      slug={project.slug}
+      on:committed={() => projectsStore.fetchProjects()}
+    />
+  {/if}
+
+  <!-- Executor control (shown after tickets are committed) -->
+  {#if project && ['approved', 'scaffolded', 'running'].includes(status)}
+    <ExecutorControl slug={project.slug} />
   {/if}
 
   <!-- Action button -->

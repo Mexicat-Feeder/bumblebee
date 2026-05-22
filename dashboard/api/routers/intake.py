@@ -101,12 +101,26 @@ def _write_qa_request(project: dict) -> None:
         log.warning("Failed to write Q&A request file: %s", e)
 
 
+class AIConfigRequest(BaseModel):
+    qa_model_source: Optional[str] = None
+    qa_model_id: Optional[str] = None
+    decomp_model_source: Optional[str] = None
+    decomp_model_id: Optional[str] = None
+    forge_model_source: Optional[str] = None
+    forge_model_id: Optional[str] = None
+    vision_model_source: Optional[str] = None
+    vision_model_id: Optional[str] = None
+    custom_api_base_url: Optional[str] = None
+    custom_api_key: Optional[str] = None
+
+
 class CreateProjectRequest(BaseModel):
     name: str
     slug: str
     description: str
     deliverable_root: str
     target_system: str = "local"
+    ai_config: Optional[AIConfigRequest] = None
 
 
 class UpdateProjectRequest(BaseModel):
@@ -158,6 +172,12 @@ def post_project(body: CreateProjectRequest):
             deliverable_root=body.deliverable_root,
             target_system=body.target_system,
         )
+        # Store AI config in registry for this project
+        if body.ai_config:
+            ai_dict = body.ai_config.model_dump(exclude_none=True)
+            if ai_dict:
+                update_project(body.slug, {"ai_config": ai_dict})
+                project["ai_config"] = ai_dict
         return project
     except ValueError as e:
         raise HTTPException(status_code=409, detail=str(e))

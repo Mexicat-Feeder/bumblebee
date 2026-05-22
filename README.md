@@ -1,294 +1,269 @@
 # Bumblebee
 
-An automated coding engine that decomposes software projects into tickets and dispatches them to an AI model for implementation, with built-in QA and retry logic.
+An automated coding engine. Describe what you want to build, and Bumblebee breaks it into tickets, sends them to an AI model, verifies the output, and retries failures — automatically.
 
-**How it works:** You describe a project → Bumblebee breaks it into phased tickets → an AI model writes the code via tool-calling → the engine verifies each file, runs build checks, and retries failures automatically.
+**You provide:** a project description (PRD) and an AI API key.
+**Bumblebee does:** ticket decomposition → code generation → verification → retry loop.
 
-## What You Need
+## Quick Install (Windows)
 
-- **Python 3.11+**
-- **An OpenAI-compatible API endpoint** — any of:
-  - OpenAI (`https://api.openai.com/v1`)
-  - Google Gemini (`https://generativelanguage.googleapis.com/v1beta/openai`)
-  - A local model server (Ollama, LM Studio, vLLM, llama.cpp, Lemonade)
-  - Any provider that speaks `/v1/chat/completions` with tool-calling
-- **Node.js** (if building frontend projects — for `npm run dev`, `vite build`, etc.)
+Open PowerShell as Administrator and run:
 
-The model must support **tool calling** (function calling). The engine gives the model a `write_file` tool and expects it to use it.
+```powershell
+irm https://raw.githubusercontent.com/mexicatfeeder-code/bumblebee/master/install.ps1 | iex
+```
 
-## Quick Start
+This will:
+1. Install Python and Node.js if needed
+2. Clone the repo and build the dashboard
+3. Start the dashboard at `http://localhost:8765`
+4. Register it as a service that starts automatically
 
-### 1. Set your API key
+### Manual Install
 
 ```bash
-export BUMBLEBEE_API_KEY="sk-..."        # or OPENAI_API_KEY
-export BUMBLEBEE_API_BASE_URL="https://api.openai.com/v1"  # optional, defaults to OpenAI
+git clone https://github.com/mexicatfeeder-code/bumblebee.git
+cd bumblebee
+pip install -r requirements.txt
+pip install -r dashboard/api/requirements.txt
+cd dashboard/ui && npm install && npm run build && cd ../..
 ```
 
-### 2. Create a project
+Start the dashboard:
 
 ```bash
-python -m bumblebee.scripts.new_project \
-  --slug my-app \
-  --name "My App" \
-  --deliverable-root ./output/my-app \
-  --tech-stack "TypeScript/React" \
-  --port 3000
+cd dashboard
+python -m uvicorn api.main:app --host 0.0.0.0 --port 8765
 ```
 
-This creates `projects/my-app/` with a `project-config.json` and `run_executor.py`.
+Open `http://localhost:8765` in your browser.
 
-### 3. Configure the model
+## Your First Project
 
-Edit `projects/my-app/project-config.json`:
+### 1. Open the Dashboard
 
-```json
-{
-  "api_base_url": "https://api.openai.com/v1",
-  "api_key": "",
-  "models": {
-    "forge": "gpt-4o",
-    "vision": "gpt-4o"
-  }
-}
-```
+Navigate to `http://localhost:8765`. You'll see the project intake form.
 
-Leave `api_key` empty to use the `BUMBLEBEE_API_KEY` / `OPENAI_API_KEY` env var.
+### 2. Create a Project
 
-### 4. Seed tickets
+Fill in:
+- **Project Name** — what you're building
+- **Description** — one-line summary
+- **Code Folder** — where the generated code will live
 
-Write a seed script that inserts tickets into the SQLite database. Each ticket needs:
-- An **objective** (what to build)
-- **Output files** (what files the model must create)
-- A **gate** (phase number for ordering)
-- **Dependencies** (which tickets must complete first)
+### 3. Upload Your PRD
 
-See [Ticket Structure](#ticket-structure) below.
+Upload a markdown file or paste your product requirements document. This describes what you want built — features, UI, behavior, constraints.
 
-### 5. Run
+### 4. Configure AI
 
-```bash
-cd projects/my-app
-python run_executor.py
-```
+The dashboard has an **AI Configuration** panel with three model slots:
 
-The engine loops through tickets: dispatches them to the AI, verifies the output, retries on failure, and advances through the state machine.
+| Phase | What it does | Recommended |
+|---|---|---|
+| **Q&A** | Asks clarifying questions about your PRD | Local AI or any model |
+| **Decomposition** | Breaks PRD into tickets | Local AI or any model |
+| **Coding** | Writes the actual code | Best model available (GPT-4o, Claude, etc.) |
 
-## Architecture
+**Using a cloud API (OpenAI, Google, etc.):**
+1. Set the phase to "Cloud / Custom API"
+2. Enter your API base URL (e.g. `https://api.openai.com/v1`)
+3. Enter your API key
+4. Enter the model name (e.g. `gpt-4o`)
 
-```
-bumblebee/
-├── engine/                     # Core engine (pure Python, no external deps)
-│   ├── config.py               # Project config loader
-│   ├── state_machine.py        # Declarative states + transitions
-│   ├── event_log.py            # Append-only audit trail + DB schema
-│   ├── executor.py             # Single-cycle sequential executor
-│   ├── direct_dispatch.py      # Sends tasks to AI via OpenAI-compatible API
-│   ├── qa.py                   # Static file checks + build verification
-│   ├── postwrite.py            # Post-write cleanup (BOM strip, build check)
-│   ├── guardrails.py           # Auto-detect common model mistakes
-│   ├── vision.py               # Screenshot-based visual QA (optional)
-│   ├── screenshot.py           # App launch + screenshot capture
-│   ├── templates.py            # Scaffold templates per archetype
-│   └── tests/                  # Test suite
-├── scripts/
-│   ├── new_project.py          # Create a new project
-│   ├── decompose.py            # Decompose a PRD into tickets
-│   ├── classify_archetype.py   # Classify project type
-│   ├── generate_checks.py      # Generate QA check scripts
-│   └── smoke_test.py           # Manual smoke test (launch app + screenshot)
-├── DECOMPOSITION-PROCESS.md    # How to structure tickets and phases
-└── SPEC-RULES.md               # Rules for writing good ticket specs
-```
+**Using a local AI (Lemonade, Ollama, etc.):**
+If you have a local AI server running that speaks the OpenAI API format (`/v1/chat/completions`), Bumblebee will detect it automatically. The model must support **tool calling** (function calling) for the coding phase.
 
-### The Loop
+### 5. Q&A Chat
 
-Each executor cycle:
+Click **Start Q&A Chat**. The AI reads your PRD and asks clarifying questions:
+- What tech stack should this use?
+- What port should the app run on?
+- What's the simplest version that counts as done?
 
-1. **ROUTE** — advance tickets whose dependencies are satisfied
-2. **DISPATCH** — send one ticket to the AI model via tool-calling API
-3. **VERIFY** — check that required files exist and the project builds
-4. **CLEANUP** — kill any child processes spawned during the cycle
+Answer the questions. When you've covered enough, click **Finish Q&A**. The AI produces a summary of decisions.
+
+### 6. Decompose
+
+Click **Decompose into Tickets**. The AI analyzes your PRD and Q&A summary, then generates a structured ticket plan:
+- **Phase 0**: Base components, config files, shared types
+- **Phase 1+**: Features, each as a self-contained ticket
+
+Review the plan. Click **Approve & Create Tickets** to commit.
+
+### 7. Start Coding
+
+Click **Start Coding**. The engine begins processing tickets:
+- Sends each ticket to the AI with a `write_file` tool
+- Verifies the output files exist and the project builds
+- Retries failures automatically (up to 3 attempts)
+- Advances through phases as dependencies are satisfied
+
+Watch progress in the dashboard — ticket status, phase completion, and live logs.
+
+## How It Works
+
+### The Engine
+
+Each cycle:
+1. **Route** — advance tickets whose dependencies are satisfied
+2. **Dispatch** — send one ticket to the AI via tool-calling API
+3. **Verify** — check output files exist and project builds
+4. **Cleanup** — kill child processes from this cycle
 
 ### State Machine
 
 ```
 todo → in_progress → done → qa_verified (terminal)
          ↓
-       blocked (retry / coding / human_review)
+       blocked (retry / human_review)
          ↓
        back to in_progress (auto-retry)
 ```
 
-Every transition is declared in `state_machine.py` with guards, side effects, and actor constraints. Invalid transitions raise exceptions. No ticket silently rots.
+### File Safety
 
-### Direct Dispatch
+- The AI can only write files listed in the ticket spec (allowlisted)
+- Every dispatch is preceded by a git commit for easy rollback
+- Build verification runs after every file write
 
-The engine sends a minimal prompt to the AI:
+### Two-Model Architecture
+
+Bumblebee was designed around a key insight: **local AI models write correct single-file code but fail at multi-file coordination.** The solution:
+
+- **Decomposition** breaks work into one-file-at-a-time tickets
+- **Coding** sends each ticket individually — the model only needs to write 1-3 files
+- **Verification** catches errors that the model misses
+
+This means you can use a smaller/cheaper model for Q&A and decomposition, and a more capable model for the actual coding — or run everything locally if your hardware supports it.
+
+## Project Structure
 
 ```
-System: You are a code generator. Use write_file to create files.
-User: Write these files: [list]. Task: [objective]. Rules: [constraints].
-Tools: [write_file(path, content)]
+bumblebee/
+├── engine/                 # Core engine (Python, no external deps)
+│   ├── executor.py         # Main execution loop
+│   ├── direct_dispatch.py  # AI API communication
+│   ├── state_machine.py    # Ticket state transitions
+│   ├── qa.py               # Build verification
+│   └── config.py           # Project configuration
+├── dashboard/              # Web UI (SvelteKit + FastAPI)
+│   ├── api/                # Python backend
+│   └── ui/                 # Svelte frontend
+├── scripts/                # Project setup & decomposition
+│   ├── new_project.py      # Create project scaffold
+│   └── decompose.py        # PRD → ticket plan
+├── projects/               # Your projects live here
+├── install.ps1             # One-command installer
+└── SPEC-RULES.md           # Guide for writing good ticket specs
 ```
 
-The model calls `write_file` for each file. The engine executes the tool calls (writes to disk), then verifies. **File writes are allowlisted** — the model can only write to paths listed in the ticket spec.
+## Requirements
 
-## Ticket Structure
+- **Python 3.11+**
+- **Node.js 18+** (for dashboard and frontend projects)
+- **An OpenAI-compatible API endpoint** — any of:
+  - OpenAI (`https://api.openai.com/v1`)
+  - Google Gemini (`https://generativelanguage.googleapis.com/v1beta/openai`)
+  - Anthropic (via proxy)
+  - A local model server (Ollama, LM Studio, vLLM, llama.cpp, Lemonade)
+  - Any provider that speaks `/v1/chat/completions` with tool-calling
 
-Tickets live in a SQLite database. The schema:
+The coding model **must support tool calling** (function calling). The engine gives the model a `write_file` tool and expects it to use it.
 
-```sql
--- Created by init_db()
-CREATE TABLE tickets (
-    id TEXT PRIMARY KEY,
-    owner TEXT,          -- lane/category
-    gate INTEGER,        -- phase number (0, 1, 2...)
-    status TEXT,         -- todo, in_progress, done, qa_verified, blocked
-    depends_on TEXT,     -- JSON array of ticket IDs
-    -- ... plus metadata, timestamps, failure counts
-);
+## Configuration
 
-CREATE TABLE ticket_requirements (
-    ticket_id TEXT PRIMARY KEY,
-    ticket_description TEXT,           -- full task spec for the AI
-    required_output_files_json TEXT,   -- JSON array of relative file paths
-    qa_cmd_json TEXT,                  -- JSON array: build/test command
-    -- ... plus optional fields
-);
-```
-
-### Example Seed Script
-
-```python
-import json, sqlite3, sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
-from bumblebee.engine.event_log import init_db
-
-conn = sqlite3.connect("tickets.db")
-conn.row_factory = sqlite3.Row
-init_db(conn)
-
-tickets = [
-    {
-        "id": "TKT-001",
-        "gate": 0,
-        "owner": "frontend",
-        "description": "Create a Button component with primary and secondary variants...",
-        "files": ["src/components/Button.tsx", "src/components/Button.css"],
-        "depends_on": [],
-    },
-    {
-        "id": "TKT-002",
-        "gate": 0,
-        "owner": "frontend",
-        "description": "Create a Card component with title, body, and optional footer...",
-        "files": ["src/components/Card.tsx", "src/components/Card.css"],
-        "depends_on": [],
-    },
-    {
-        "id": "TKT-003",
-        "gate": 1,
-        "owner": "frontend",
-        "description": "Create the main App layout using Button and Card...",
-        "files": ["src/App.tsx"],
-        "depends_on": ["TKT-001", "TKT-002"],
-    },
-]
-
-for t in tickets:
-    conn.execute(
-        "INSERT INTO tickets (id, owner, gate, status, depends_on) VALUES (?, ?, ?, 'todo', ?)",
-        (t["id"], t["owner"], t["gate"], json.dumps(t["depends_on"])),
-    )
-    conn.execute(
-        "INSERT INTO ticket_requirements (ticket_id, ticket_description, required_output_files_json) VALUES (?, ?, ?)",
-        (t["id"], t["description"], json.dumps(t["files"])),
-    )
-
-conn.commit()
-print(f"Seeded {len(tickets)} tickets")
-```
-
-## Project Config
-
-`project-config.json` — all paths and settings for one project:
+### Dashboard Config (`dashboard/dashboard.config.json`)
 
 ```json
 {
-  "engine_root": "./engine",
-  "project_root": ".",
-  "workspace_root": "..",
-  "deliverable_root": "./output",
-  "db_path": "./tickets.db",
-  "artifacts_dir": "./output/artifacts",
-  "checks_dir": "./output/checks",
-
-  "api_base_url": "https://api.openai.com/v1",
-  "api_key": "",
-
-  "forge_agent": "forge",
-  "models": {
-    "forge": "gpt-4o",
-    "vision": "gpt-4o"
-  },
-
-  "forge_timeout_seconds": 300,
-  "cycle_interval_seconds": 2,
-  "max_dispatch_attempts": 3,
-
-  "tech_stack": "TypeScript/React",
-  "ui_check": {
-    "launch_cmd": ["npm", "run", "dev"],
-    "cwd": "./output",
-    "url": "http://127.0.0.1:3000",
-    "ui_port": 3000
+  "ticketDbPaths": {},
+  "apiPort": 8765,
+  "workspaceRoot": "C:\\path\\to\\bumblebee",
+  "ai": {
+    "lemonade_url": "http://[::1]:13305",
+    "qa_model_source": "lemonade",
+    "qa_model_id": "Qwen3.6-27B-GGUF",
+    "decomp_model_source": "lemonade",
+    "decomp_model_id": "Qwen3.6-27B-GGUF",
+    "forge_model_source": "custom",
+    "forge_model_id": "gpt-4o",
+    "custom_api_base_url": "https://api.openai.com/v1",
+    "custom_api_key": "sk-..."
   }
 }
 ```
 
-### Config Resolution Order
+### Project Config (`projects/<slug>/project-config.json`)
 
-For API connection:
-1. `api_base_url` in config → 2. `BUMBLEBEE_API_BASE_URL` env → 3. `https://api.openai.com/v1`
-1. `api_key` in config → 2. `BUMBLEBEE_API_KEY` env → 3. `OPENAI_API_KEY` env
+Each project gets its own config with paths, model settings, and build commands. Created automatically during decomposition.
 
-## Writing Good Specs
+### Environment Variables
 
-The quality of the AI output depends heavily on the ticket spec. See `SPEC-RULES.md` for the full guide. Key principles:
+| Variable | Purpose | Default |
+|---|---|---|
+| `BUMBLEBEE_API_KEY` | API key for the coding model | *(none)* |
+| `BUMBLEBEE_API_BASE_URL` | API endpoint | `https://api.openai.com/v1` |
+| `OPENAI_API_KEY` | Fallback API key | *(none)* |
+| `DASHBOARD_CONFIG` | Path to dashboard config | `dashboard.config.json` |
 
-- **One ticket = one concern.** Don't combine "create Button component" with "wire it into App layout."
-- **List exact output files.** The engine enforces an allowlist — the model can only write what you specify.
-- **Inline architecture rules.** Don't say "follow ARCHITECTURE.md." Paste the relevant rules into the spec.
-- **Provide context files verbatim.** If the ticket modifies or integrates with existing code, include the full current file content in the spec.
-- **Be explicit about patterns.** "Use `export default function Button()`" beats "export the component."
+## CLI Usage
 
-## QA Tiers
+You can also use Bumblebee without the dashboard:
 
-1. **Static** (automatic) — Do required files exist? Are they non-empty? No syntax errors?
-2. **Build** (automatic) — Does the project build? (`vite build`, `tsc`, etc.)
-3. **Smoke test** (manual) — Launch the app, check it renders, take a screenshot.
-4. **Vision** (optional) — Send a screenshot to a vision model for visual verification.
+### Create a project
 
-Tiers 1–2 run automatically per ticket. Tier 3 runs manually at phase boundaries via `smoke_test.py`. Tier 4 requires a vision-capable model.
+```bash
+python -m bumblebee.scripts.new_project \
+  --slug my-app \
+  --name "My App" \
+  --deliverable-root ./output/my-app \
+  --tech-stack "TypeScript/React"
+```
 
-## Guardrails
+### Run the executor
 
-The engine auto-detects common model mistakes:
+```bash
+cd projects/my-app
+python run_executor.py
+```
 
-- **Svelte `$` prefix** — Detects store references missing `$` in templates
-- **Export integrity** — Captures baseline exports before dispatch, fails if exports disappear
-- **Rewrite detection** — Flags >60% file deletion as suspicious
-- **Allowlist enforcement** — Blocks writes to files not in the ticket spec
+## Troubleshooting
 
-## Tips
+### "AI model returned 401"
+Your API key is invalid or expired. Check the key in AI Configuration or the `BUMBLEBEE_API_KEY` environment variable.
 
-- **Start with Gate 0.** Base components with zero dependencies. Let the model warm up on simple tasks.
-- **Phase boundaries are checkpoints.** Run `smoke_test.py` before moving to the next phase.
-- **Git your deliverable root.** The executor auto-commits before each dispatch for easy rollback.
-- **Small models work for simple tickets.** Gate 0 components often succeed with smaller/cheaper models. Save the big model for integration tickets.
-- **When a ticket keeps failing, fix the spec.** Don't patch the code manually — improve the description, add more context, or split the ticket smaller.
+### "AI model returned no choices"
+The model didn't respond. This usually means the model is overloaded or the request timed out. Try again, or switch to a different model.
+
+### "No Q&A model configured"
+You haven't selected a model for the Q&A phase. Open AI Configuration in the dashboard and select a model (or set it to "Cloud / Custom API" and enter your API details).
+
+### Dashboard won't start
+- Check that Python 3.11+ is installed: `python --version`
+- Check that dependencies are installed: `pip install -r dashboard/api/requirements.txt`
+- Check that the frontend is built: `ls dashboard/ui/build`
+- Try running manually: `cd dashboard && python -m uvicorn api.main:app --port 8765`
+
+### Tickets keep failing
+- Check the executor logs in the dashboard (click "Show Logs")
+- Common causes: model doesn't support tool calling, API rate limits, invalid API key
+- The engine retries up to 3 times per ticket before marking it as blocked
+
+### Local AI not detected
+Bumblebee looks for a local AI server at `http://[::1]:13305`. If your server is at a different address, update the Lemonade URL in the dashboard config.
+
+## Writing Good PRDs
+
+The better your PRD, the better the decomposition. Include:
+
+- **What the app does** — features, user flows, expected behavior
+- **Tech preferences** — language, framework, or "you decide"
+- **UI description** — what the user sees, how they interact
+- **Error handling** — what happens when things go wrong
+- **Scope boundaries** — what's in v1, what's not
+
+You don't need to specify file structure, architecture, or implementation details — the decomposer handles that.
 
 ## License
 

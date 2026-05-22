@@ -15,6 +15,7 @@
     'begin-qa': void;
     'approve': void;
     'begin-build': void;
+    'decompose': void;
   }>();
   
   $: action = computeAction(status, checklist);
@@ -22,24 +23,20 @@
   function computeAction(st: string, cl: typeof checklist): { label: string; event: string; enabled: boolean } | null {
     if (st === 'intake') {
       return {
-        label: 'Begin Q&A',
+        label: 'Start Q&A Chat',
         event: 'begin-qa',
         enabled: cl.named && cl.prd_uploaded
       };
     }
     if (st === 'qa_pending') {
-      return null;  // no action while Q&A is in progress
+      return null;  // chat widget handles this state
     }
     if (st === 'qa_complete') {
-      return {
-        label: 'Approve Plan',
-        event: 'approve',
-        enabled: cl.qa_complete
-      };
+      return null;  // DecompReview component handles this state
     }
     if (st === 'approved') {
       return {
-        label: 'Begin Build',
+        label: 'Start Coding',
         event: 'begin-build',
         enabled: cl.approved
       };
