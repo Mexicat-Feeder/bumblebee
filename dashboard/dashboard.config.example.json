@@ -1,7 +1,9 @@
 {
   "ticketDbPaths": {
-    "my-project": "./projects/my-project/tickets.db"
+    "food-cart": "../demos/food-cart/tickets.db"
   },
   "apiPort": 8765,
-  "healthChecks": []
+  "healthChecks": [],
+  "lemonadeUrl": "http://[::1]:13305",
+  "pixelProjectStart": null
 }

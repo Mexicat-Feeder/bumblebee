@@ -1,0 +1,21 @@
+{
+  "engine_root": "../../engine",
+  "project_root": ".",
+  "workspace_root": "../..",
+  "deliverable_root": "./output",
+  "db_path": "./tickets.db",
+  "artifacts_dir": "./artifacts",
+  "checks_dir": "./output/checks",
+  "forge_agent": "forge",
+  "models": {
+    "forge": "Qwen3-Coder-30B-A3B-Instruct-GGUF",
+    "vision": "Qwen3-Coder-30B-A3B-Instruct-GGUF"
+  },
+  "forge_timeout_seconds": 600,
+  "cycle_interval_seconds": 2,
+  "max_dispatch_attempts": 3,
+  "tech_stack": "React 18 + TypeScript + Vite frontend, FastAPI Python backend, SQLite, Tailwind CSS",
+  "display_name": "Pop-Up Food Cart Ordering App",
+  "loops_enabled": false,
+  "lemonade_api_url": "http://[::1]:13305/api/v1"
+}

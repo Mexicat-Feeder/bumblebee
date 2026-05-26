@@ -8,7 +8,7 @@
     expandedSlug = expandedSlug === slug ? null : slug;
   }
   
-  function selectView(slug: string, view: 'intake' | 'dashboard') {
+  function selectView(slug: string, view: 'intake' | 'dashboard' | 'costs') {
     projectsStore.selectProject(slug, view);
     expandedSlug = slug;
     selectedResearchId.set(null);
@@ -131,6 +131,15 @@
                 title={isDashboardDisabled(project.status) ? 'Available after Q&A completes' : ''}
               >
                 📊 Dashboard
+              </button>
+              <button
+                class="sub-link costs-link"
+                on:click={() => !isDashboardDisabled(project.status) && selectView(project.slug, 'costs')}
+                class:disabled={isDashboardDisabled(project.status)}
+                class:active={$selectedProject?.slug === project.slug && $activeView === 'costs'}
+                title="Cloud vs Local cost comparison"
+              >
+                💰 Cost Comparison
               </button>
             </div>
           {/if}

@@ -24,7 +24,7 @@ export interface Project {
   };
 }
 
-type View = 'dashboard' | 'intake' | null;
+type View = 'dashboard' | 'intake' | 'costs' | null;
 
 interface ProjectsState {
   projects: Project[];

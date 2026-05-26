@@ -13,6 +13,7 @@
   import IntakeView from '$lib/components/IntakeView.svelte';
   import ResearchIntakeView from '$lib/components/ResearchIntakeView.svelte';
   import ResearchReportView from '$lib/components/ResearchReportView.svelte';
+  import CostComparison from '$lib/components/CostComparison.svelte';
   import { selectedResearchId, researchView } from '$lib/stores/research';
 
   // Connect ticket store to the selected project's DB
@@ -42,6 +43,8 @@
   <ResearchIntakeView />
 {:else if $activeView === 'intake' || (!$selectedProject && $activeView === 'intake')}
   <IntakeView />
+{:else if $activeView === 'costs' && $selectedProject}
+  <CostComparison slug={$selectedProject.slug} />
 {:else}
   <div class="dashboard">
     <!-- Row 1: KPI Cards -->
