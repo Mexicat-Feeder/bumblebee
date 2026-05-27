@@ -32,6 +32,37 @@ if str(_BUMBLEBEE_ROOT) not in sys.path:
     sys.path.insert(0, str(_BUMBLEBEE_ROOT))
 
 DEFAULT_LEMONADE_URL = "http://[::1]:13305"
+DEFAULT_CLOUD_MODEL = "gpt-4.1-mini"
+DEFAULT_CLOUD_BASE_URL = "https://api.openai.com/v1"
+
+
+# ---------------------------------------------------------------------------
+# Cloud key / config helpers
+# ---------------------------------------------------------------------------
+
+def _load_cloud_config() -> tuple[str, str, str]:
+    """Load cloud API config from ~/.bumblebee/. Returns (base_url, model_id, api_key)."""
+    bumblebee_dir = Path.home() / ".bumblebee"
+
+    # Read API key
+    key_path = bumblebee_dir / "cloud-api-key.txt"
+    api_key = ""
+    if key_path.exists():
+        api_key = key_path.read_text(encoding="utf-8").strip()
+
+    # Read optional config override
+    config_path = bumblebee_dir / "cloud-config.json"
+    base_url = DEFAULT_CLOUD_BASE_URL
+    model_id = DEFAULT_CLOUD_MODEL
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text(encoding="utf-8"))
+            base_url = cfg.get("base_url", base_url)
+            model_id = cfg.get("model", model_id)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return base_url, model_id, api_key
 
 
 # ---------------------------------------------------------------------------
@@ -39,56 +70,50 @@ DEFAULT_LEMONADE_URL = "http://[::1]:13305"
 # ---------------------------------------------------------------------------
 
 def _resolve_decomp_model(project: dict | None = None) -> tuple[str, str, str]:
-    """Resolve the decomposition model endpoint. Returns (base_url, model_id, api_key)."""
+    """Resolve the decomposition model endpoint. Returns (base_url, model_id, api_key).
+
+    Priority:
+    1. Cloud API key in ~/.bumblebee/cloud-api-key.txt (best quality)
+    2. Fallback to Lemonade local model (limited quality, warns in logs)
+    """
+    # Try cloud first
+    cloud_url, cloud_model, cloud_key = _load_cloud_config()
+    if cloud_key:
+        log.info("Decompose: using cloud model %s", cloud_model)
+        # Ensure /v1 suffix
+        if not cloud_url.rstrip('/').endswith('/v1'):
+            cloud_url = cloud_url.rstrip('/') + '/v1'
+        return cloud_url, cloud_model, cloud_key
+
+    # Fallback to Lemonade
+    log.warning("Decompose: no cloud API key found, falling back to Lemonade (limited quality)")
     config = get_config()
     ai = config.get("ai", {})
-
-    source = ai.get("decomp_model_source", "lemonade")
-    model_id = ai.get("decomp_model_id", "")
-
-    if project:
-        proj_ai = project.get("ai_config", {})
-        if proj_ai.get("decomp_model_source"):
-            source = proj_ai["decomp_model_source"]
-        if proj_ai.get("decomp_model_id"):
-            model_id = proj_ai["decomp_model_id"]
-
-    if source == "lemonade":
-        base_url = config.get("lemonadeUrl") or ai.get("lemonade_url", DEFAULT_LEMONADE_URL)
-        raw_url = base_url  # before /v1 suffix
-        # Ensure /v1 suffix for OpenAI-compatible endpoint
-        if not base_url.rstrip('/').endswith('/v1'):
-            base_url = base_url.rstrip('/') + '/v1'
-        # Auto-detect model from Lemonade if not explicitly set
-        # Prefer the larger coding model (Forge) over Sift for decomposition
-        if not model_id:
-            try:
-                health_url = raw_url.rstrip('/') + '/api/v1/health'
-                resp = httpx.get(health_url, timeout=5.0)
-                if resp.status_code == 200:
-                    health_data = resp.json()
-                    all_loaded = health_data.get("all_models_loaded", [])
-                    if all_loaded:
-                        # Prefer non-Sift model (Sift models contain 'gemma' or 'E4B')
-                        sift_keywords = ["gemma", "e4b", "sift"]
-                        for m in all_loaded:
-                            mid = (m.get("id") or "").lower()
-                            if not any(kw in mid for kw in sift_keywords):
-                                model_id = m.get("id", "")
-                                break
-                        # If all models look like Sift, just use the first one
-                        if not model_id and all_loaded:
-                            model_id = all_loaded[0].get("id", "")
-                    # Fallback to model_loaded (single model case)
-                    if not model_id:
-                        model_id = health_data.get("model_loaded", "")
-            except Exception:
-                pass
-        return base_url, model_id, ""
-    else:
-        base_url = ai.get("custom_api_base_url", "https://api.openai.com/v1")
-        api_key = ai.get("custom_api_key", "")
-        return base_url, model_id, api_key
+    base_url = config.get("lemonadeUrl") or ai.get("lemonade_url", DEFAULT_LEMONADE_URL)
+    raw_url = base_url
+    if not base_url.rstrip('/').endswith('/v1'):
+        base_url = base_url.rstrip('/') + '/v1'
+    model_id = ""
+    try:
+        health_url = raw_url.rstrip('/') + '/api/v1/health'
+        resp = httpx.get(health_url, timeout=5.0)
+        if resp.status_code == 200:
+            health_data = resp.json()
+            all_loaded = health_data.get("all_models_loaded", [])
+            if all_loaded:
+                sift_keywords = ["gemma", "e4b", "sift"]
+                for m in all_loaded:
+                    mid = (m.get("id") or "").lower()
+                    if not any(kw in mid for kw in sift_keywords):
+                        model_id = m.get("id", "")
+                        break
+                if not model_id and all_loaded:
+                    model_id = all_loaded[0].get("id", "")
+            if not model_id:
+                model_id = health_data.get("model_loaded", "")
+    except Exception:
+        pass
+    return base_url, model_id, ""
 
 
 def _make_llm_fn(base_url: str, model_id: str, api_key: str):

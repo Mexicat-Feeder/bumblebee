@@ -514,13 +514,27 @@ Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
 Write-Host "    1. Open the dashboard in your browser"
 Write-Host "    2. Create a new project (name + PRD)"
-Write-Host "    3. Configure your AI provider (API key)"
-Write-Host "    4. Chat with the AI to refine your requirements"
-Write-Host "    5. Decompose into tickets and start coding!"
+Write-Host "    3. Chat with the AI to refine your requirements"
+Write-Host "    4. Decompose into tickets and start coding!"
 Write-Host ""
 
-# Check for Brave Search API key (used by Sift research agent)
-$braveKeyPath = Join-Path $env:USERPROFILE ".bumblebee\brave-api-key.txt"
+# Check for API keys
+$bumblebeeConfigDir = Join-Path $env:USERPROFILE ".bumblebee"
+
+# Cloud API key (used for ticket decomposition - GPT-4.1-mini by default)
+$cloudKeyPath = Join-Path $bumblebeeConfigDir "cloud-api-key.txt"
+if (Test-Path $cloudKeyPath) {
+    Write-Host "  Cloud API key found - decomposition uses GPT-4.1-mini." -ForegroundColor Green
+} else {
+    Write-Host ""
+    Write-Host "  NOTE: Ticket decomposition works best with a cloud model." -ForegroundColor Yellow
+    Write-Host "  Get an OpenAI API key from: https://platform.openai.com/api-keys" -ForegroundColor Yellow
+    Write-Host "  Save it to: $cloudKeyPath" -ForegroundColor Yellow
+    Write-Host "  Without it, decomposition falls back to local model (limited quality)." -ForegroundColor Yellow
+}
+
+# Brave Search API key (used by Sift research agent)
+$braveKeyPath = Join-Path $bumblebeeConfigDir "brave-api-key.txt"
 if (Test-Path $braveKeyPath) {
     Write-Host "  Brave Search API key found - Sift web search enabled." -ForegroundColor Green
 } else {

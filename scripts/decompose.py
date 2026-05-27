@@ -258,29 +258,59 @@ def generate_decomp_plan(
 
 
 def _build_system_prompt(project_slug: str, tech_stack: str) -> str:
-    return f"""You are a software project decomposer. Given a PRD, architecture doc, and optional visual reference,
-break the project into atomic, file-scoped tickets organized by gates.
+    slug_upper = project_slug.upper().replace("-", "")
+    return f"""You are a senior software architect decomposing a PRD into build tickets for an automated coding agent (Forge).
+Forge is a local LLM that writes code from ticket specs. It is reliable at creating 1-8 files per ticket when given exact file paths, but UNRELIABLE at guessing APIs or project structure. Your job is to produce tickets detailed enough that Forge can build the entire app without human intervention.
 
-Rules:
-- Gate 0: base components (Card, Button, TabBar, etc.) + shared API types + design tokens. These have NO dependencies.
-- Gate 1+: feature tickets that depend on Gate 0 components.
-- Each child ticket produces exactly one file (or a small set of closely related files).
-- Parent tickets represent features. They have children and an E2E integration test.
-- Every UI child ticket MUST include an interaction_spec describing observable behavior.
-- interaction_specs use generic selectors (text content, visible labels) not data-testid attributes.
-- Tech stack: {tech_stack}
+Tech stack: {tech_stack or "Determine from PRD/Q&A summary"}
 
-Output valid JSON array of ticket objects."""
+## TICKET STRUCTURE (every field matters)
+
+```json
+{{
+  "id": "{slug_upper}-P<gate>-<seq>",
+  "gate": <int>,
+  "description": "What to build. Be specific about behavior, not vague.",
+  "required_output_files": ["path/to/file.ext"],
+  "depends_on": ["{slug_upper}-P0-001"],
+  "context_files": ["path/to/file-from-earlier-gate.ext"],
+  "interaction_spec": "For UI tickets: step-by-step user interaction.",
+  "constraints": ["Use X pattern", "Import from Y"],
+  "worker_done_criteria": "Specific: file exists, exports X, handles Y",
+  "qa_done_criteria": "What to verify",
+  "qa_cmd": [],
+  "requires_live_review": false,
+  "is_parent": false
+}}
+```
+
+## RULES
+
+1. **IDs**: `{slug_upper}-P<gate>-<3-digit-seq>` (e.g. {slug_upper}-P0-001, {slug_upper}-P1-003)
+2. **Gates**: Use 3-5 gates. Gate 0 = foundation (types, DB, shared components, API skeleton). Gate 1+ = features.
+3. **required_output_files**: MANDATORY for every ticket. Exact relative paths. 1-8 files per ticket.
+4. **depends_on**: Reference ticket IDs from earlier gates when the ticket needs those files.
+5. **context_files**: List files from earlier tickets that Forge should READ to understand the codebase. Critical for consistency.
+6. **constraints**: Inline specific patterns Forge must follow (e.g. "Use `router.get()` not `app.get()`", "Import Button from '../ui/Button'"). Forge hallucinates APIs without these.
+7. **worker_done_criteria**: Be specific. Not "files exist" but "file exports MenuBrowse component that fetches from /api/menu and renders items grouped by category".
+8. **No orphan tickets**: Every gate 1+ ticket should depend_on at least one gate 0 ticket and list context_files.
+9. **Backend + Frontend together**: If a feature needs both an API endpoint and a UI page, they can be in the same ticket (up to 8 files) or split with explicit deps.
+10. **WebSocket/real-time**: If the PRD requires real-time updates, include the WebSocket server setup in gate 0 and client hooks in the relevant feature gate.
+
+## OUTPUT
+
+Return ONLY a JSON array of ticket objects. No markdown, no explanation, no wrapping."""
+
 
 
 def _build_user_prompt(prd_text: str, architecture_text: str, mvp_text: str, slug: str) -> str:
-    parts = [f"## PRD\n{prd_text[:8000]}"]
+    parts = [f"## PRD\n{prd_text[:12000]}"]
     if architecture_text:
-        parts.append(f"\n## Architecture\n{architecture_text[:4000]}")
+        parts.append(f"\n## Technical Summary / Q&A Decisions\n{architecture_text[:8000]}")
     if mvp_text:
-        parts.append(f"\n## MVP Scope\n{mvp_text[:2000]}")
+        parts.append(f"\n## MVP Scope\n{mvp_text[:4000]}")
     parts.append(f"\nProject slug: {slug}")
-    parts.append("\nDecompose into tickets. Return JSON array.")
+    parts.append("\nDecompose this into Forge tickets. Return ONLY the JSON array.")
     return "\n".join(parts)
 
 
