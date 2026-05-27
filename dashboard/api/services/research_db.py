@@ -1,10 +1,9 @@
 """
-research_db.py — read/write research tickets from the old-swarm research DB.
-All tickets are RSH-XXX; reports land in SIFT_DIR as RSH-XXX.report.md.
+research_db.py — read/write research tickets from the standalone research DB.
+All tickets are RSH-XXX; reports land in {researchRoot}/reports/ as RSH-XXX.report.md.
+The Sift executor (engine/research_executor.py) processes queued tickets automatically.
 """
-import os
 import sqlite3
-import json
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -138,46 +137,27 @@ def submit_ticket(
         description += f"\n\nContext:\n{context.strip()}"
 
     root = Path(research_root)
-    # RESEARCH_SIFT_DIR env var overrides; falls back to a "Sift" subdir inside research_root
-    sift_dir = Path(os.environ.get("RESEARCH_SIFT_DIR", str(root / "Sift")))
-    brief_rel = f"orchestrator/output/research/{ticket_id}.brief.json"
-    report_abs = str(sift_dir / f"{ticket_id}.report.md")
-    review_rel = f"orchestrator/output/research/{ticket_id}.close.json"
+    reports_dir = root / "reports"
+    reports_dir.mkdir(parents=True, exist_ok=True)
+    report_abs = str((reports_dir / f"{ticket_id}.report.md").resolve())
 
-    # Write brief JSON
-    brief_path = root / brief_rel
-    brief_path.parent.mkdir(parents=True, exist_ok=True)
-    brief_path.write_text(
-        json.dumps(
-            {
-                "ticket_id": ticket_id,
-                "question": question.strip(),
-                "context": context.strip(),
-                "enqueued_at": now,
-                "requested_by": "dashboard",
-            },
-            indent=2,
-        ),
-        encoding="utf-8",
-    )
-
-    # Insert into tickets — status must be 'todo' (CHECK constraint in this schema)
+    # Insert into tickets
     conn.execute(
         """
-        INSERT INTO tickets (id, owner, gate, status, depends_on)
-        VALUES (?, 'research', 1, 'todo', '[]')
+        INSERT INTO tickets (id, owner, gate, status, depends_on, updated_at)
+        VALUES (?, 'research', 1, 'todo', '[]', ?)
         """,
-        (ticket_id,),
+        (ticket_id, now),
     )
 
-    # Insert into ticket_requirements — must supply all NOT NULL columns that have no default
+    # Insert into ticket_requirements
     conn.execute(
         """
         INSERT OR IGNORE INTO ticket_requirements
-            (ticket_id, ticket_description, worker_done_criteria, qa_done_criteria)
-        VALUES (?, ?, 'Report delivered to Sift directory', 'Human reviewed and acked')
+            (ticket_id, ticket_description, worker_done_criteria, qa_done_criteria, updated_at)
+        VALUES (?, ?, 'Report delivered by Sift', 'Report available', ?)
         """,
-        (ticket_id, description),
+        (ticket_id, description, now),
     )
 
     # Insert into research_queue
@@ -186,9 +166,9 @@ def submit_ticket(
         INSERT INTO research_queue
             (ticket_id, requested_by, consumed_by, closure_mode, queue_status,
              priority, brief_path, report_path, review_path, enqueued_at, last_note)
-        VALUES (?, 'dashboard', 'pixel', 'human_ack', 'queued', ?, ?, ?, ?, ?, '')
+        VALUES (?, 'dashboard', 'sift', 'auto', 'queued', ?, '', ?, '', ?, '')
         """,
-        (ticket_id, priority, brief_rel, report_abs, review_rel, now),
+        (ticket_id, priority, report_abs, now),
     )
 
     conn.commit()

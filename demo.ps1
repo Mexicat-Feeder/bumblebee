@@ -167,6 +167,31 @@ if (-not $SkipDashboard) {
 }
 
 # ---------------------------------------------------------------------------
+# Step 3b: Start research executor
+# ---------------------------------------------------------------------------
+if ($lemonadeOk) {
+    $researchDb = Join-Path $root "research\research.db"
+    $reportsDir = Join-Path $root "research\reports"
+    # Also check demo-local research DB
+    $demoResearchDb = Join-Path $projectDir "research\research.db"
+    $demoReportsDir = Join-Path $projectDir "research\reports"
+    $activeResearchDb = $null
+    $activeReportsDir = $null
+    if (Test-Path $demoResearchDb) {
+        $activeResearchDb = $demoResearchDb
+        $activeReportsDir = $demoReportsDir
+    } elseif (Test-Path $researchDb) {
+        $activeResearchDb = $researchDb
+        $activeReportsDir = $reportsDir
+    }
+    if ($activeResearchDb) {
+        Write-Host "  Starting research executor (Sift)..." -ForegroundColor Cyan
+        Start-Process powershell -ArgumentList "-ExecutionPolicy Bypass -Command `"cd '$root'; python engine/research_executor.py --db-path '$activeResearchDb' --reports-dir '$activeReportsDir'`"" -WindowStyle Normal
+        Write-Host "  Sift running in new window." -ForegroundColor Green
+    }
+}
+
+# ---------------------------------------------------------------------------
 # Step 4: Start executor (live coding)
 # ---------------------------------------------------------------------------
 if ($lemonadeOk) {

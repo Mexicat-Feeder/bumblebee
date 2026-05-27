@@ -253,11 +253,27 @@ if (-not (Test-Path $configPath)) {
             }
         }
     }
+    $researchDir = Join-Path $bumblebeeRoot "research"
+    $researchDb = Join-Path $researchDir "research.db"
+    $reportsDir = Join-Path $researchDir "reports"
+    # Prefer the food-cart demo's pre-seeded research DB if present
+    $demoResearchDb = Join-Path $bumblebeeRoot "demos\food-cart\research\research.db"
+    $demoResearchDir = Join-Path $bumblebeeRoot "demos\food-cart\research"
+    if (Test-Path $demoResearchDb) {
+        $activeResearchDb = $demoResearchDb
+        $activeResearchRoot = $demoResearchDir
+        Write-Host "  Using food-cart demo research DB." -ForegroundColor Green
+    } else {
+        $activeResearchDb = $researchDb
+        $activeResearchRoot = $researchDir
+    }
     $config = @{
         ticketDbPaths = $demoPaths
         apiPort = $Port
         healthChecks = @()
         lemonadeUrl = "http://[::1]:13305"
+        researchDbPath = $activeResearchDb
+        researchRoot = $activeResearchRoot
     }
     $jsonText = $config | ConvertTo-Json -Depth 4
     [System.IO.File]::WriteAllText($configPath, $jsonText, [System.Text.UTF8Encoding]::new($false))
@@ -270,6 +286,18 @@ else {
 $projectsDir = Join-Path $bumblebeeRoot "projects"
 if (-not (Test-Path $projectsDir)) {
     New-Item -ItemType Directory -Path $projectsDir -Force | Out-Null
+}
+
+# Initialize research DB
+$researchDir = Join-Path $bumblebeeRoot "research"
+$researchDb = Join-Path $researchDir "research.db"
+$reportsDir = Join-Path $researchDir "reports"
+if (-not (Test-Path $researchDb)) {
+    Write-Host "  Initializing research DB..." -ForegroundColor Yellow
+    & $python (Join-Path $bumblebeeRoot "scripts\init_research.py") --db-path $researchDb --reports-dir $reportsDir --seed-demo
+    Write-Host "  Research DB initialized." -ForegroundColor Green
+} else {
+    Write-Host "  Research DB already exists." -ForegroundColor Green
 }
 
 # ---------------------------------------------------------------------------

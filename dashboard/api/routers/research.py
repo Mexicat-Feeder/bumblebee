@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import logging
+import sqlite3
+from pathlib import Path
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/research", tags=["research"])
@@ -16,6 +18,21 @@ def _cfg():
     root = cfg.get("researchRoot", "")
     if not db:
         raise HTTPException(status_code=503, detail="researchDbPath not configured")
+    # Auto-init DB if it doesn't exist yet
+    db_path = Path(db)
+    if not db_path.exists():
+        try:
+            db_path.parent.mkdir(parents=True, exist_ok=True)
+            if root:
+                Path(root, "reports").mkdir(parents=True, exist_ok=True)
+            from engine.research_db import init_research_db  # type: ignore
+            conn = sqlite3.connect(str(db_path))
+            conn.execute("PRAGMA journal_mode=WAL")
+            init_research_db(conn)
+            conn.close()
+            log.info("Auto-initialized research DB at %s", db_path)
+        except Exception as exc:
+            log.warning("Could not auto-init research DB: %s", exc)
     return db, root
 
 
