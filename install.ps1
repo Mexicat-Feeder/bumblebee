@@ -152,10 +152,91 @@ else {
 Set-Location $bumblebeeRoot
 
 # ---------------------------------------------------------------------------
-# Step 5: Create config
+# Step 5: Ensure Lemonade is running with coding model loaded
 # ---------------------------------------------------------------------------
 
-Write-Host "[5/6] Configuring..." -ForegroundColor Yellow
+Write-Host "[5/8] Checking Lemonade (local AI server)..." -ForegroundColor Yellow
+
+$lemonadeUrl = "http://[::1]:13305"
+$lemonadeExe = Join-Path $env:LOCALAPPDATA "lemonade_server\bin\LemonadeServer.exe"
+$requiredModel = "Qwen3.6-27B-GGUF"
+$requiredContext = 32768
+$lemonadeOk = $false
+
+function Test-LemonadeHealth {
+    try {
+        $r = Invoke-RestMethod -Uri "$lemonadeUrl/api/v1/health" -TimeoutSec 5 -ErrorAction Stop
+        return $r
+    } catch {
+        return $null
+    }
+}
+
+$health = Test-LemonadeHealth
+if (-not $health) {
+    if (Test-Path $lemonadeExe) {
+        Write-Host "  Lemonade not running. Starting..." -ForegroundColor Yellow
+        Start-Process $lemonadeExe -WindowStyle Minimized
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Seconds 1
+            $health = Test-LemonadeHealth
+            if ($health) { break }
+        }
+        if ($health) {
+            Write-Host "  Lemonade started." -ForegroundColor Green
+        } else {
+            Write-Host "  WARNING: Lemonade did not start within 30s." -ForegroundColor Red
+            Write-Host "  Start it manually and load $requiredModel with ctx_size $requiredContext." -ForegroundColor Yellow
+        }
+    } else {
+        Write-Host "  Lemonade not found at $lemonadeExe" -ForegroundColor Red
+        Write-Host "  Install Lemonade from https://lemonade-server.ai and load $requiredModel" -ForegroundColor Yellow
+    }
+}
+
+if ($health) {
+    $loadedModel = $health.model_loaded
+    if ($loadedModel -eq $requiredModel) {
+        Write-Host "  $requiredModel already loaded." -ForegroundColor Green
+        $lemonadeOk = $true
+    } else {
+        # Unload any currently loaded models
+        if ($loadedModel) {
+            Write-Host "  Unloading current model ($loadedModel)..." -ForegroundColor Yellow
+            try {
+                Invoke-RestMethod -Uri "$lemonadeUrl/v1/unload" -Method POST `
+                    -ContentType "application/json" `
+                    -Body (@{model_name=$loadedModel} | ConvertTo-Json) `
+                    -TimeoutSec 30 -ErrorAction Stop | Out-Null
+            } catch {
+                Write-Host "  WARNING: Could not unload $loadedModel - trying load anyway." -ForegroundColor Yellow
+            }
+        }
+        # Load the required model via Lemonade API
+        Write-Host "  Loading $requiredModel (ctx_size: $requiredContext)... this may take 1-3 minutes." -ForegroundColor Yellow
+        try {
+            $loadResp = Invoke-RestMethod -Uri "$lemonadeUrl/v1/load" -Method POST `
+                -ContentType "application/json" `
+                -Body (@{
+                    model_name = $requiredModel
+                    ctx_size = $requiredContext
+                    save_options = $true
+                } | ConvertTo-Json) `
+                -TimeoutSec 300 -ErrorAction Stop
+            Write-Host "  $requiredModel loaded (ctx_size: $requiredContext). $($loadResp.message)" -ForegroundColor Green
+            $lemonadeOk = $true
+        } catch {
+            Write-Host "  WARNING: Failed to load $requiredModel - $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  Load it manually in Lemonade with ctx_size $requiredContext." -ForegroundColor Yellow
+        }
+    }
+}
+
+# ---------------------------------------------------------------------------
+# Step 6: Create config
+# ---------------------------------------------------------------------------
+
+Write-Host "[6/8] Configuring..." -ForegroundColor Yellow
 
 $configPath = Join-Path $bumblebeeRoot "dashboard\dashboard.config.json"
 if (-not (Test-Path $configPath)) {
@@ -196,7 +277,7 @@ if (-not (Test-Path $projectsDir)) {
 # ---------------------------------------------------------------------------
 
 if (-not $SkipService) {
-    Write-Host "[6/6] Registering dashboard service..." -ForegroundColor Yellow
+    Write-Host "[7/8] Registering dashboard service..." -ForegroundColor Yellow
 
     $taskName = "Bumblebee-Dashboard"
     $existing = Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue
@@ -248,15 +329,14 @@ if (-not $SkipService) {
     }
 }
 else {
-    Write-Host "[6/6] Skipping service registration." -ForegroundColor Yellow
+    Write-Host "[7/8] Skipping service registration." -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------------------
-# ---------------------------------------------------------------------------
-# Step 7: Set up demo apps and desktop shortcuts
+# Step 8: Set up demo apps and desktop shortcuts
 # ---------------------------------------------------------------------------
 
-Write-Host "[7/7] Setting up demo apps..." -ForegroundColor Yellow
+Write-Host "[8/8] Setting up demo apps..." -ForegroundColor Yellow
 
 $demosDir = Join-Path $bumblebeeRoot "demos"
 if (Test-Path $demosDir) {

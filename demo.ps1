@@ -39,21 +39,77 @@ Write-Host ""
 # Step 1: Check Lemonade
 # ---------------------------------------------------------------------------
 Write-Host "[1/4] Checking Lemonade server..." -ForegroundColor Cyan
+$lemonadeUrl = "http://[::1]:13305"
+$lemonadeExe = Join-Path $env:LOCALAPPDATA "lemonade_server\bin\LemonadeServer.exe"
+$requiredModel = "Qwen3.6-27B-GGUF"
+$requiredContext = 32768
 $lemonadeOk = $false
-try {
-    $resp = Invoke-RestMethod -Uri "http://[::1]:13305/api/v1/health" -TimeoutSec 3 -ErrorAction Stop
-    $model = $resp.model_loaded
-    if ($model) {
-        Write-Host "  Lemonade OK — model: $model" -ForegroundColor Green
+
+function Test-LemonadeHealth {
+    try {
+        $r = Invoke-RestMethod -Uri "$lemonadeUrl/api/v1/health" -TimeoutSec 5 -ErrorAction Stop
+        return $r
+    } catch {
+        return $null
+    }
+}
+
+$health = Test-LemonadeHealth
+if (-not $health) {
+    if (Test-Path $lemonadeExe) {
+        Write-Host "  Lemonade not running. Starting..." -ForegroundColor Yellow
+        Start-Process $lemonadeExe -WindowStyle Minimized
+        for ($i = 0; $i -lt 30; $i++) {
+            Start-Sleep -Seconds 1
+            $health = Test-LemonadeHealth
+            if ($health) { break }
+        }
+        if ($health) {
+            Write-Host "  Lemonade started." -ForegroundColor Green
+        } else {
+            Write-Host "  WARNING: Lemonade did not start within 30s." -ForegroundColor Red
+        }
+    } else {
+        Write-Host "  Lemonade not found. Start it manually." -ForegroundColor Red
+    }
+}
+
+if ($health) {
+    $loadedModel = $health.model_loaded
+    if ($loadedModel -eq $requiredModel) {
+        Write-Host "  Lemonade OK - $requiredModel loaded." -ForegroundColor Green
         $lemonadeOk = $true
     } else {
-        Write-Host "  Lemonade running but no model loaded." -ForegroundColor Yellow
-        Write-Host "  Load a coding model (e.g. Qwen3-Coder) in Lemonade before running the demo." -ForegroundColor Yellow
+        if ($loadedModel) {
+            Write-Host "  Unloading $loadedModel..." -ForegroundColor Yellow
+            try {
+                Invoke-RestMethod -Uri "$lemonadeUrl/v1/unload" -Method POST `
+                    -ContentType "application/json" `
+                    -Body (@{model_name=$loadedModel} | ConvertTo-Json) `
+                    -TimeoutSec 30 -ErrorAction Stop | Out-Null
+            } catch {
+                Write-Host "  Could not unload, trying load anyway..." -ForegroundColor Yellow
+            }
+        }
+        Write-Host "  Loading $requiredModel (ctx_size: $requiredContext)... this may take 1-3 minutes." -ForegroundColor Yellow
+        try {
+            $loadResp = Invoke-RestMethod -Uri "$lemonadeUrl/v1/load" -Method POST `
+                -ContentType "application/json" `
+                -Body (@{
+                    model_name = $requiredModel
+                    ctx_size = $requiredContext
+                    save_options = $true
+                } | ConvertTo-Json) `
+                -TimeoutSec 300 -ErrorAction Stop
+            Write-Host "  $requiredModel loaded (ctx_size: $requiredContext). $($loadResp.message)" -ForegroundColor Green
+            $lemonadeOk = $true
+        } catch {
+            Write-Host "  Failed to load model: $($_.Exception.Message)" -ForegroundColor Red
+            Write-Host "  Load $requiredModel manually in Lemonade with ctx_size $requiredContext." -ForegroundColor Yellow
+        }
     }
-} catch {
-    Write-Host "  Lemonade not reachable at http://[::1]:13305" -ForegroundColor Red
-    Write-Host "  Start Lemonade and load a coding model first." -ForegroundColor Red
-    Write-Host "  The dashboard will still work, but the executor won't be able to code." -ForegroundColor Yellow
+} else {
+    Write-Host "  Lemonade not available. Dashboard will work, but executor won't code." -ForegroundColor Yellow
 }
 
 # ---------------------------------------------------------------------------
