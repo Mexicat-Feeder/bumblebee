@@ -61,6 +61,27 @@
 6. "Launch App" button appears when ready
 7. Human clicks to verify
 
+## Implementation Order (ship tonight)
+
+### Phase 1: Three-phase pipeline view (test on Gopo)
+1. Remove top KPI/hardware/loop-health panels
+2. Build three-block pipeline component (Creating Tickets / Coding / QA Review)
+3. Wire ticket counters to real data (decompose SSE stream, executor status)
+4. Cloud/local badges on each block
+
+### Phase 2: Sliding drawer (test on Gopo)
+5. Move intake form into left drawer component
+6. Project list at top of drawer (active + queued)
+7. Decompose trigger closes drawer, activates pipeline view
+
+### Phase 3: Flow + interactions (test on Gopo)
+8. Visual ticket flow between blocks (count up in Creating, count down in Coding, count up in QA)
+9. "Launch App" button in QA block when Pixel signals ready
+10. Polish: metrics row, cloud vs local cost display
+
+### Phase 4: Deploy to Chiron
+11. Git push, pull on Chiron, npm build, verify end-to-end
+
 ## Open Questions
 - How much cleanup does Pixel need post-Forge? TBD after first real build attempt
 - Do we show individual ticket names in the Coding block, or just count?
