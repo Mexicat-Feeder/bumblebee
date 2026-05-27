@@ -1,6 +1,7 @@
 <script lang="ts">
   import { projectsStore, selectedProject, activeView } from '$lib/stores/projects';
   import { researchStore, selectedResearchId, researchView, selectResearch, newResearch, researchStatusColor, researchStatusLabel } from '$lib/stores/research';
+  import { openDrawer } from '$lib/stores/drawer';
   
   let expandedSlug: string | null = null;
   
@@ -17,6 +18,7 @@
   function newProject() {
     projectsStore.selectProject(null, 'intake');
     selectedResearchId.set(null);
+    openDrawer();
   }
 
   function openNewResearch() {

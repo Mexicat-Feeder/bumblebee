@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, afterUpdate } from 'svelte';
+  import { pipelineStore } from '$lib/stores/pipeline';
 
   export let slug: string;
   export let disabled: boolean = false;
@@ -61,6 +62,8 @@
     error = '';
     plan = null;
     streamingTickets = [];
+    // Signal pipeline that decomposition is starting
+    pipelineStore.startDecompose();
 
     try {
       const resp = await fetch(`/api/projects/${slug}/decompose`, {
@@ -100,10 +103,12 @@
             try {
               const ticket: Ticket = JSON.parse(eventData);
               streamingTickets = [...streamingTickets, ticket];
+              pipelineStore.ticketCreated();
             } catch { /* skip malformed */ }
           } else if (eventType === 'plan') {
             try {
               plan = JSON.parse(eventData);
+              pipelineStore.decompComplete(plan?.total_tickets ?? streamingTickets.length);
             } catch { /* skip */ }
           } else if (eventType === 'error') {
             try {

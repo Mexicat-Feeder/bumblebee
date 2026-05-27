@@ -1,6 +1,10 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte';
   import { projectsStore, selectedProject } from '$lib/stores/projects';
   import type { Project } from '$lib/stores/projects';
+  import { pipelineStore } from '$lib/stores/pipeline';
+
+  const dispatch = createEventDispatcher();
   import ChecklistStepper from './intake/ChecklistStepper.svelte';
   import IdentitySection from './intake/IdentitySection.svelte';
   import PrdUpload from './intake/PrdUpload.svelte';
@@ -335,6 +339,9 @@
       const resp = await fetch(`/api/intake/projects/${project.slug}/begin-build`, { method: 'POST' });
       if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
       projectsStore.fetchProjects();
+      // Close drawer and kick off pipeline coding phase
+      dispatch('decompose-started');
+      pipelineStore.startCoding(project.slug);
     } catch (err: any) {
       errorMessage = `Begin Build failed: ${err.message}`;
     }
