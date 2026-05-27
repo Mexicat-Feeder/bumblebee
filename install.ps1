@@ -195,25 +195,13 @@ if (-not $health) {
 }
 
 if ($health) {
+    # --- Forge model (Qwen3.6-27B) ---
     $loadedModel = $health.model_loaded
     if ($loadedModel -eq $requiredModel) {
-        Write-Host "  $requiredModel already loaded." -ForegroundColor Green
+        Write-Host "  Forge: $requiredModel already loaded." -ForegroundColor Green
         $lemonadeOk = $true
     } else {
-        # Unload any currently loaded models
-        if ($loadedModel) {
-            Write-Host "  Unloading current model ($loadedModel)..." -ForegroundColor Yellow
-            try {
-                Invoke-RestMethod -Uri "$lemonadeUrl/v1/unload" -Method POST `
-                    -ContentType "application/json" `
-                    -Body (@{model_name=$loadedModel} | ConvertTo-Json) `
-                    -TimeoutSec 30 -ErrorAction Stop | Out-Null
-            } catch {
-                Write-Host "  WARNING: Could not unload $loadedModel - trying load anyway." -ForegroundColor Yellow
-            }
-        }
-        # Load the required model via Lemonade API
-        Write-Host "  Loading $requiredModel (ctx_size: $requiredContext)... this may take 1-3 minutes." -ForegroundColor Yellow
+        Write-Host "  Loading Forge model: $requiredModel (ctx_size: $requiredContext)..." -ForegroundColor Yellow
         try {
             $loadResp = Invoke-RestMethod -Uri "$lemonadeUrl/v1/load" -Method POST `
                 -ContentType "application/json" `
@@ -223,12 +211,54 @@ if ($health) {
                     save_options = $true
                 } | ConvertTo-Json) `
                 -TimeoutSec 300 -ErrorAction Stop
-            Write-Host "  $requiredModel loaded (ctx_size: $requiredContext). $($loadResp.message)" -ForegroundColor Green
+            Write-Host "  Forge model loaded. $($loadResp.message)" -ForegroundColor Green
             $lemonadeOk = $true
         } catch {
-            Write-Host "  WARNING: Failed to load $requiredModel - $($_.Exception.Message)" -ForegroundColor Red
-            Write-Host "  Load it manually in Lemonade with ctx_size $requiredContext." -ForegroundColor Yellow
+            Write-Host "  WARNING: Failed to load Forge model - $($_.Exception.Message)" -ForegroundColor Red
         }
+    }
+
+    # --- Sift model (Gemma 4 E4B) ---
+    $siftModel = "user.gemma-4-E4B-it-GGUF"
+    $siftCheckpoint = "unsloth/gemma-4-E4B-it-GGUF:UD-Q4_K_XL"
+    $siftContext = 32768
+
+    # Check if Sift model is registered
+    $models = (Invoke-RestMethod -Uri "$lemonadeUrl/api/v1/models" -TimeoutSec 5).data
+    $siftRegistered = $models | Where-Object { $_.id -eq $siftModel }
+
+    if (-not $siftRegistered) {
+        Write-Host "  Downloading Sift model ($siftModel)... this may take a few minutes." -ForegroundColor Yellow
+        try {
+            Invoke-RestMethod -Uri "$lemonadeUrl/v1/pull" -Method POST `
+                -ContentType "application/json" `
+                -Body (@{
+                    model_name = $siftModel
+                    checkpoint = $siftCheckpoint
+                    recipe = "llamacpp"
+                } | ConvertTo-Json) `
+                -TimeoutSec 600 -ErrorAction Stop | Out-Null
+            Write-Host "  Sift model downloaded." -ForegroundColor Green
+        } catch {
+            Write-Host "  WARNING: Failed to download Sift model - $($_.Exception.Message)" -ForegroundColor Red
+        }
+    }
+
+    # Load Sift model (Lemonade supports 2 LLMs simultaneously)
+    Write-Host "  Loading Sift model: $siftModel (ctx_size: $siftContext)..." -ForegroundColor Yellow
+    try {
+        Invoke-RestMethod -Uri "$lemonadeUrl/v1/load" -Method POST `
+            -ContentType "application/json" `
+            -Body (@{
+                model_name = $siftModel
+                ctx_size = $siftContext
+                save_options = $true
+            } | ConvertTo-Json) `
+            -TimeoutSec 120 -ErrorAction Stop | Out-Null
+        Write-Host "  Sift model loaded. Two models active (Forge + Sift)." -ForegroundColor Green
+    } catch {
+        Write-Host "  WARNING: Failed to load Sift model - $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  Sift will fall back to sharing the Forge model." -ForegroundColor Yellow
     }
 }
 

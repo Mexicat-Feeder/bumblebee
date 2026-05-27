@@ -39,6 +39,12 @@ log = logging.getLogger("sift")
 LEMONADE_BASE = "http://[::1]:13305"
 HEALTH_URL = f"{LEMONADE_BASE}/api/v1/health"
 COMPLETIONS_URL = f"{LEMONADE_BASE}/v1/chat/completions"
+LOAD_URL = f"{LEMONADE_BASE}/v1/load"
+PULL_URL = f"{LEMONADE_BASE}/v1/pull"
+
+SIFT_MODEL = "user.gemma-4-E4B-it-GGUF"
+SIFT_MODEL_CHECKPOINT = "unsloth/gemma-4-E4B-it-GGUF:UD-Q4_K_XL"
+SIFT_CTX_SIZE = 32768
 
 BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
 BRAVE_KEY_PATH = Path.home() / ".bumblebee" / "brave-api-key.txt"
@@ -100,6 +106,60 @@ def detect_model() -> str | None:
         return data.get("model_loaded") or None
     except Exception as exc:
         log.warning("Could not reach Lemonade health endpoint: %s", exc)
+        return None
+
+
+def ensure_sift_model() -> str | None:
+    """Ensure Sift's dedicated model is downloaded and loaded. Returns model name or None."""
+    # Check if already loaded
+    try:
+        r = httpx.get(HEALTH_URL, timeout=5.0)
+        r.raise_for_status()
+        health = r.json()
+        loaded = [m.get("id") or m for m in health.get("all_models_loaded", [])]
+        if isinstance(health.get("model_loaded"), str):
+            loaded.append(health["model_loaded"])
+        if SIFT_MODEL in loaded:
+            return SIFT_MODEL
+    except Exception:
+        return None
+
+    # Check if model exists in registry
+    try:
+        r = httpx.get(f"{LEMONADE_BASE}/api/v1/models", timeout=5.0)
+        r.raise_for_status()
+        known_ids = [m["id"] for m in r.json().get("data", [])]
+    except Exception:
+        known_ids = []
+
+    # Pull if not registered
+    if SIFT_MODEL not in known_ids:
+        log.info("Downloading Sift model %s...", SIFT_MODEL)
+        try:
+            r = httpx.post(PULL_URL, json={
+                "model_name": SIFT_MODEL,
+                "checkpoint": SIFT_MODEL_CHECKPOINT,
+                "recipe": "llamacpp",
+            }, timeout=600.0)
+            r.raise_for_status()
+            log.info("Download complete: %s", r.json().get("message", ""))
+        except Exception as exc:
+            log.error("Failed to download Sift model: %s", exc)
+            return None
+
+    # Load the model
+    log.info("Loading Sift model %s (ctx_size=%d)...", SIFT_MODEL, SIFT_CTX_SIZE)
+    try:
+        r = httpx.post(LOAD_URL, json={
+            "model_name": SIFT_MODEL,
+            "ctx_size": SIFT_CTX_SIZE,
+            "save_options": True,
+        }, timeout=300.0)
+        r.raise_for_status()
+        log.info("Sift model loaded: %s", r.json().get("message", ""))
+        return SIFT_MODEL
+    except Exception as exc:
+        log.error("Failed to load Sift model: %s", exc)
         return None
 
 
@@ -270,13 +330,21 @@ def run_loop(db_path: str, reports_dir: str) -> None:
     else:
         log.warning("No Brave API key found at %s — Sift will use LLM knowledge only", BRAVE_KEY_PATH)
 
-    while not _shutdown:
-        # Detect model each cycle (in case it changes)
+    # Ensure Sift's dedicated model is loaded at startup
+    model = ensure_sift_model()
+    if not model:
+        log.warning("Could not load Sift model — falling back to auto-detect")
         model = detect_model()
+    if model:
+        log.info("Using model: %s", model)
+
+    while not _shutdown:
         if not model:
-            log.warning("Lemonade not available or no model loaded — sleeping %ds", SLEEP_SECONDS)
-            time.sleep(SLEEP_SECONDS)
-            continue
+            model = detect_model()
+            if not model:
+                log.warning("Lemonade not available or no model loaded — sleeping %ds", SLEEP_SECONDS)
+                time.sleep(SLEEP_SECONDS)
+                continue
 
         ticket = fetch_next_ticket(conn)
         if not ticket:
