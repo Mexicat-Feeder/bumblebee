@@ -422,6 +422,17 @@ Write-Host "    4. Chat with the AI to refine your requirements"
 Write-Host "    5. Decompose into tickets and start coding!"
 Write-Host ""
 
+# Check for Brave Search API key (used by Sift research agent)
+$braveKeyPath = Join-Path $env:USERPROFILE ".bumblebee\brave-api-key.txt"
+if (Test-Path $braveKeyPath) {
+    Write-Host "  Brave Search API key found - Sift web search enabled." -ForegroundColor Green
+} else {
+    Write-Host "" 
+    Write-Host "  NOTE: Sift research agent works best with web search." -ForegroundColor Yellow
+    Write-Host "  Get a free Brave Search API key from: https://brave.com/search/api/" -ForegroundColor Yellow
+    Write-Host "  Save it to: $braveKeyPath" -ForegroundColor Yellow
+}
+
 if (-not $NoLaunch) {
     Write-Host "Opening dashboard..." -ForegroundColor Cyan
     Start-Sleep -Seconds 3

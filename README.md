@@ -101,6 +101,34 @@ Click **Start Coding**. The engine begins processing tickets:
 
 Watch progress in the dashboard — ticket status, phase completion, and live logs.
 
+## Research Agent (Sift)
+
+Bumblebee includes **Sift**, a research agent that investigates topics and writes structured reports. Sift runs alongside Forge (the coding agent) — you can kick off research while code is being written.
+
+### Setup
+
+Sift uses the **Brave Search API** for web research. To enable it:
+
+1. Get a free API key from [brave.com/search/api](https://brave.com/search/api/) (2,000 queries/month free)
+2. Save the key to `~/.bumblebee/brave-api-key.txt`:
+
+```powershell
+mkdir $env:USERPROFILE\.bumblebee -Force
+"YOUR_API_KEY_HERE" | Set-Content $env:USERPROFILE\.bumblebee\brave-api-key.txt
+```
+
+Without an API key, Sift still works but generates reports from the LLM's training knowledge only (no live web results).
+
+### Using Sift
+
+1. Click **New Research** in the dashboard sidebar
+2. Enter a research question and optional context
+3. Click **Submit to Queue**
+4. Sift picks up the ticket, searches the web, and generates a report
+5. Reports appear in the dashboard when complete
+
+Sift runs as a separate executor (`engine/research_executor.py`). The demo launcher (`demo.ps1`) starts it automatically.
+
 ## How It Works
 
 ### The Engine

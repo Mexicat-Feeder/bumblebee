@@ -40,14 +40,20 @@ LEMONADE_BASE = "http://[::1]:13305"
 HEALTH_URL = f"{LEMONADE_BASE}/api/v1/health"
 COMPLETIONS_URL = f"{LEMONADE_BASE}/v1/chat/completions"
 
+BRAVE_SEARCH_URL = "https://api.search.brave.com/res/v1/web/search"
+BRAVE_KEY_PATH = Path.home() / ".bumblebee" / "brave-api-key.txt"
+SEARCH_RESULT_COUNT = 5
+
 SIFT_SYSTEM_PROMPT = """\
 You are Sift, a research analyst agent. You investigate topics thoroughly and produce well-structured research reports.
 
 Your reports should include:
 - An executive summary (2-3 sentences)
-- Key findings organized by theme
+- Key findings organized by theme, referencing sources where provided
 - Practical recommendations
-- Sources and references where applicable
+- A Sources section listing URLs you referenced
+
+When web search results are provided, use them as your primary source material. Cite specific findings from the search results. If search results are thin, supplement with your own knowledge but note what is from search vs general knowledge.
 
 Write in a clear, direct style. Prefer concrete examples over abstractions. If the topic is technical, include code snippets or configuration examples where relevant.
 """
@@ -97,13 +103,65 @@ def detect_model() -> str | None:
         return None
 
 
-def call_lemonade(model: str, question: str) -> str:
+def load_brave_key() -> str | None:
+    """Read Brave API key from ~/.bumblebee/brave-api-key.txt if it exists."""
+    try:
+        if BRAVE_KEY_PATH.exists():
+            key = BRAVE_KEY_PATH.read_text(encoding="utf-8").strip()
+            if key:
+                return key
+    except Exception:
+        pass
+    return None
+
+
+def brave_search(query: str, api_key: str) -> list[dict]:
+    """Search Brave and return a list of {title, url, description} results."""
+    try:
+        r = httpx.get(
+            BRAVE_SEARCH_URL,
+            params={"q": query, "count": SEARCH_RESULT_COUNT},
+            headers={"Accept": "application/json", "X-Subscription-Token": api_key},
+            timeout=15.0,
+        )
+        r.raise_for_status()
+        data = r.json()
+        results = []
+        for item in data.get("web", {}).get("results", []):
+            results.append({
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "description": item.get("description", ""),
+            })
+        return results
+    except Exception as exc:
+        log.warning("Brave search failed for '%s': %s", query[:60], exc)
+        return []
+
+
+def format_search_context(results: list[dict]) -> str:
+    """Format search results into a context block for the LLM prompt."""
+    if not results:
+        return ""
+    lines = ["\n## Web Search Results\n"]
+    for i, r in enumerate(results, 1):
+        lines.append(f"### [{i}] {r['title']}")
+        lines.append(f"URL: {r['url']}")
+        lines.append(f"{r['description']}\n")
+    return "\n".join(lines)
+
+
+def call_lemonade(model: str, question: str, search_context: str = "") -> str:
     """Call Lemonade chat completions and return the response text."""
+    user_content = question
+    if search_context:
+        user_content = f"{question}\n{search_context}"
+
     payload = {
         "model": model,
         "messages": [
             {"role": "system", "content": SIFT_SYSTEM_PROMPT},
-            {"role": "user", "content": question},
+            {"role": "user", "content": user_content},
         ],
         "temperature": TEMPERATURE,
         "max_tokens": MAX_TOKENS,
@@ -205,6 +263,13 @@ def run_loop(db_path: str, reports_dir: str) -> None:
 
     conn = connect_db(db_path)
 
+    # Load Brave API key once at startup
+    brave_key = load_brave_key()
+    if brave_key:
+        log.info("Brave Search API key loaded — web search enabled")
+    else:
+        log.warning("No Brave API key found at %s — Sift will use LLM knowledge only", BRAVE_KEY_PATH)
+
     while not _shutdown:
         # Detect model each cycle (in case it changes)
         model = detect_model()
@@ -226,7 +291,19 @@ def run_loop(db_path: str, reports_dir: str) -> None:
         mark_in_progress(conn, ticket_id)
 
         try:
-            report_text = call_lemonade(model, question)
+            # Web search phase
+            search_context = ""
+            if brave_key:
+                log.info("Searching web for: %s", question[:60])
+                results = brave_search(question, brave_key)
+                if results:
+                    log.info("Got %d search results", len(results))
+                    search_context = format_search_context(results)
+                else:
+                    log.info("No search results — proceeding with LLM knowledge only")
+
+            # LLM generation phase
+            report_text = call_lemonade(model, question, search_context)
             report_path = reports / f"{ticket_id}.report.md"
             report_path.write_text(report_text, encoding="utf-8")
             log.info("Report written to %s (%d chars)", report_path, len(report_text))
