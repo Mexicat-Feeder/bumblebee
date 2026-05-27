@@ -82,7 +82,13 @@
       // Reset transient state on any project switch
       prdFilename = project?.prd_path ? (project.prd_path.split(/[\\/]/).pop() ?? 'prd.md') : null;
       prdText = '';
-      refImages = [];
+      // Pre-populate ref images from stored paths
+      const refs = project?.ref_paths;
+      const refArr: string[] = Array.isArray(refs) ? refs : [];
+      refImages = refArr.map(r => ({
+        url: `/api/intake/projects/${project!.slug}/refs/${r.split(/[\\/]/).pop()}`,
+        name: r.split(/[\\/]/).pop() ?? 'ref'
+      }));
       errorMessage = '';
       actionLoading = false;
     }
