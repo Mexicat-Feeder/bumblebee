@@ -80,7 +80,7 @@
         aiConfigLoaded = true;
       }
       // Reset transient state on any project switch
-      prdFilename = null;
+      prdFilename = project?.prd_path ? (project.prd_path.split(/[\\/]/).pop() ?? 'prd.md') : null;
       prdText = '';
       refImages = [];
       errorMessage = '';
