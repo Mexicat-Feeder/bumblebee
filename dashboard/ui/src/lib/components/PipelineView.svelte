@@ -12,14 +12,35 @@
   let state: PipelineState;
   const unsub = pipelineStore.subscribe(s => state = s);
 
+  // Cost data from API
+  let cloudCost = 0;
+  let localCost = 0;
+  let costPoller: ReturnType<typeof setInterval> | null = null;
+
   // Auto-detect pipeline phase from project status on load
   let lastAutoSlug = '';
   $: if (slug && slug !== lastAutoSlug) {
     lastAutoSlug = slug;
+    if (costPoller) clearInterval(costPoller);
     // If project is already in a build state, start polling
     if (['scaffolded', 'running', 'approved'].includes(projectStatus) && state.phase === 'idle') {
       pipelineStore.startCoding(slug);
     }
+    // Poll costs
+    fetchCosts(slug);
+    costPoller = setInterval(() => fetchCosts(slug), 10000);
+  }
+
+  async function fetchCosts(s: string) {
+    if (!s) return;
+    try {
+      const resp = await fetch(`/api/costs/${s}`);
+      if (resp.ok) {
+        const data = await resp.json();
+        cloudCost = data.cloud_costs?.gpt4o ?? 0;
+        localCost = data.local_cost ?? 0;
+      }
+    } catch { /* ignore */ }
   }
 
   // Sync pipeline store from ticket SSE
@@ -36,7 +57,11 @@
   onDestroy(() => {
     unsub();
     ticketUnsub?.();
+    if (costPoller) clearInterval(costPoller);
   });
+
+  // Show welcome state when no project is selected
+  $: noProject = !slug;
 
   // Formatted elapsed time
   $: elapsed = formatTime(state.elapsedSeconds);
@@ -65,6 +90,21 @@
   $: allDone = state.phase === 'done';
 </script>
 
+{#if noProject}
+<div class="welcome-container">
+  <div class="welcome-graphic">
+    <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
+      <rect x="8" y="20" width="18" height="40" rx="4" fill="rgba(58,190,255,0.15)" stroke="rgba(58,190,255,0.4)" stroke-width="1.5"/>
+      <rect x="31" y="12" width="18" height="56" rx="4" fill="rgba(89,227,138,0.15)" stroke="rgba(89,227,138,0.4)" stroke-width="1.5"/>
+      <rect x="54" y="24" width="18" height="32" rx="4" fill="rgba(58,190,255,0.15)" stroke="rgba(58,190,255,0.4)" stroke-width="1.5"/>
+      <path d="M28 40 L30 40" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+      <path d="M51 40 L53 40" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+    </svg>
+  </div>
+  <h2 class="welcome-title">Build Pipeline</h2>
+  <p class="welcome-sub">Select a project from the sidebar, or create a new one to start building.</p>
+</div>
+{:else}
 <div class="pipeline-container">
   <!-- Header -->
   <div class="pipeline-header">
@@ -205,29 +245,58 @@
   {/if}
 
   <!-- Bottom metrics -->
-  {#if state.phase !== 'idle'}
-    <div class="metrics-row">
-      <div class="metric-card">
-        <span class="mc-label">Total Tickets</span>
-        <span class="mc-value">{state.totalTickets || state.createdTickets}</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Cloud Cost</span>
-        <span class="mc-value cloud-cost">~${state.decompCost.toFixed(2)}</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Local Cost</span>
-        <span class="mc-value local-cost">$0.00</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Elapsed</span>
-        <span class="mc-value">{elapsed}</span>
-      </div>
+  <div class="metrics-row">
+    <div class="metric-card">
+      <span class="mc-label">Total Tickets</span>
+      <span class="mc-value">{state.totalTickets || state.createdTickets || '--'}</span>
     </div>
-  {/if}
+    <div class="metric-card">
+      <span class="mc-label">Cloud Cost</span>
+      <span class="mc-value cloud-cost">{cloudCost > 0 ? `$${cloudCost.toFixed(2)}` : state.decompCost > 0 ? `~$${state.decompCost.toFixed(2)}` : '$0.00'}</span>
+    </div>
+    <div class="metric-card">
+      <span class="mc-label">Local Cost</span>
+      <span class="mc-value local-cost">$0.00</span>
+    </div>
+    <div class="metric-card">
+      <span class="mc-label">Elapsed</span>
+      <span class="mc-value">{state.phase !== 'idle' ? elapsed : '--'}</span>
+    </div>
+  </div>
 </div>
+{/if}
 
 <style>
+  /* Welcome state */
+  .welcome-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    min-height: 400px;
+    opacity: 0.7;
+  }
+
+  .welcome-graphic {
+    opacity: 0.6;
+  }
+
+  .welcome-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .welcome-sub {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    margin: 0;
+    text-align: center;
+    max-width: 360px;
+  }
+
   .pipeline-container {
     display: flex;
     flex-direction: column;
