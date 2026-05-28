@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { pipelineStore } from '$lib/stores/pipeline';
   import { ticketStore } from '$lib/stores/tickets';
+  import { telemetry } from '$lib/stores/telemetry';
   import type { PipelineState } from '$lib/stores/pipeline';
 
   export let slug: string = '';
@@ -62,6 +63,39 @@
 
   // Show welcome state when no project is selected
   $: noProject = !slug;
+
+  // Health lights
+  let healthLights: { name: string; ok: boolean }[] = [];
+  let healthPoller: ReturnType<typeof setInterval> | null = null;
+
+  onMount(() => {
+    fetchHealth();
+    healthPoller = setInterval(fetchHealth, 15000);
+    return () => {
+      if (healthPoller) clearInterval(healthPoller);
+    };
+  });
+
+  async function fetchHealth() {
+    try {
+      const res = await fetch('/api/swarm/health');
+      if (res.ok) {
+        const data = await res.json();
+        healthLights = data.lights ?? [];
+      }
+    } catch { /* keep last */ }
+  }
+
+  // Telemetry derived values
+  $: hw = $telemetry.hardware;
+  $: inf = $telemetry.inference;
+  $: cpuPct = hw.cpu_percent != null ? Math.round(hw.cpu_percent) : null;
+  $: ramUsed = hw.ram_used_gb != null ? hw.ram_used_gb.toFixed(1) : null;
+  $: ramTotal = hw.ram_total_gb != null ? hw.ram_total_gb.toFixed(0) : null;
+  $: gpuPct = hw.gpu_3d_percent != null ? Math.round(hw.gpu_3d_percent) : null;
+  $: vramUsed = hw.igpu_mem_gb != null ? hw.igpu_mem_gb.toFixed(1) : null;
+  $: tps = inf.tokens_per_second != null ? inf.tokens_per_second.toFixed(1) : null;
+  $: ttft = inf.time_to_first_token != null ? (inf.time_to_first_token * 1000).toFixed(0) : null;
 
   // Formatted elapsed time
   $: elapsed = formatTime(state.elapsedSeconds);
@@ -244,23 +278,89 @@
     </div>
   {/if}
 
-  <!-- Bottom metrics -->
-  <div class="metrics-row">
-    <div class="metric-card">
-      <span class="mc-label">Total Tickets</span>
-      <span class="mc-value">{state.totalTickets || state.createdTickets || '--'}</span>
+  <!-- System & Cost Metrics -->
+  <div class="metrics-section">
+    <!-- Row 1: Costs -->
+    <div class="metrics-row">
+      <div class="metric-card">
+        <span class="mc-label">Total Tickets</span>
+        <span class="mc-value">{state.totalTickets || state.createdTickets || '--'}</span>
+      </div>
+      <div class="metric-card">
+        <span class="mc-label">Cloud Cost</span>
+        <span class="mc-value cloud-cost">{cloudCost > 0 ? `$${cloudCost.toFixed(2)}` : state.decompCost > 0 ? `~$${state.decompCost.toFixed(2)}` : '$0.00'}</span>
+      </div>
+      <div class="metric-card">
+        <span class="mc-label">Local Cost</span>
+        <span class="mc-value local-cost">$0.00</span>
+      </div>
+      <div class="metric-card">
+        <span class="mc-label">Elapsed</span>
+        <span class="mc-value">{state.phase !== 'idle' ? elapsed : '--'}</span>
+      </div>
     </div>
-    <div class="metric-card">
-      <span class="mc-label">Cloud Cost</span>
-      <span class="mc-value cloud-cost">{cloudCost > 0 ? `$${cloudCost.toFixed(2)}` : state.decompCost > 0 ? `~$${state.decompCost.toFixed(2)}` : '$0.00'}</span>
-    </div>
-    <div class="metric-card">
-      <span class="mc-label">Local Cost</span>
-      <span class="mc-value local-cost">$0.00</span>
-    </div>
-    <div class="metric-card">
-      <span class="mc-label">Elapsed</span>
-      <span class="mc-value">{state.phase !== 'idle' ? elapsed : '--'}</span>
+
+    <!-- Row 2: System Health -->
+    <div class="system-row">
+      <!-- Health Lights -->
+      <div class="health-strip">
+        {#each healthLights as light}
+          <div class="health-item" class:ok={light.ok} class:fail={!light.ok}>
+            <span class="health-dot"></span>
+            <span class="health-name">{light.name}</span>
+          </div>
+        {/each}
+      </div>
+
+      <!-- Hardware Gauges -->
+      <div class="hw-gauges">
+        {#if cpuPct != null}
+          <div class="hw-gauge">
+            <span class="hw-label">CPU</span>
+            <div class="hw-bar-track">
+              <div class="hw-bar-fill cpu" style="width: {cpuPct}%"></div>
+            </div>
+            <span class="hw-val">{cpuPct}%</span>
+          </div>
+        {/if}
+        {#if gpuPct != null}
+          <div class="hw-gauge">
+            <span class="hw-label">GPU</span>
+            <div class="hw-bar-track">
+              <div class="hw-bar-fill gpu" style="width: {gpuPct}%"></div>
+            </div>
+            <span class="hw-val">{gpuPct}%</span>
+          </div>
+        {/if}
+        {#if vramUsed != null}
+          <div class="hw-gauge">
+            <span class="hw-label">VRAM</span>
+            <span class="hw-val-only">{vramUsed} GB</span>
+          </div>
+        {/if}
+        {#if ramUsed != null}
+          <div class="hw-gauge">
+            <span class="hw-label">RAM</span>
+            <span class="hw-val-only">{ramUsed}/{ramTotal} GB</span>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Inference Speed -->
+      <div class="inference-strip">
+        {#if tps != null}
+          <div class="inf-item">
+            <span class="inf-label">tok/s</span>
+            <span class="inf-value">{tps}</span>
+          </div>
+        {/if}
+        {#if ttft != null}
+          <div class="inf-item">
+            <span class="inf-label">TTFT</span>
+            <span class="inf-value">{ttft}ms</span>
+          </div>
+        {/if}
+      </div>
     </div>
   </div>
 </div>
@@ -618,6 +718,147 @@
     color: var(--color-accent-worker);
   }
 
+  /* System metrics section */
+  .metrics-section {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .system-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 12px 16px;
+    background: var(--color-bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 8px;
+  }
+
+  /* Health lights strip */
+  .health-strip {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-shrink: 0;
+  }
+
+  .health-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .health-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-text-muted);
+  }
+
+  .health-item.ok .health-dot {
+    background: var(--color-status-pass);
+    box-shadow: 0 0 6px var(--color-status-pass);
+  }
+
+  .health-item.fail .health-dot {
+    background: var(--color-status-fail);
+    box-shadow: 0 0 6px var(--color-status-fail);
+  }
+
+  .health-name {
+    font-size: 0.62rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+  }
+
+  /* Hardware gauges */
+  .hw-gauges {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    padding-left: 20px;
+  }
+
+  .hw-gauge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .hw-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    width: 32px;
+  }
+
+  .hw-bar-track {
+    width: 60px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .hw-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 1s ease;
+  }
+
+  .hw-bar-fill.cpu { background: var(--color-accent-cpu); }
+  .hw-bar-fill.gpu { background: var(--color-accent-gpu); }
+
+  .hw-val {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-secondary);
+    min-width: 28px;
+  }
+
+  .hw-val-only {
+    font-size: 0.65rem;
+    font-family: var(--font-mono);
+    color: var(--color-text-secondary);
+  }
+
+  /* Inference strip */
+  .inference-strip {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border-left: 1px solid rgba(255, 255, 255, 0.06);
+    padding-left: 20px;
+    flex-shrink: 0;
+  }
+
+  .inf-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .inf-label {
+    font-size: 0.6rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+  }
+
+  .inf-value {
+    font-size: 0.8rem;
+    font-weight: 600;
+    font-family: var(--font-mono);
+    color: var(--color-accent-worker);
+  }
+
   /* Responsive */
   @media (max-width: 900px) {
     .phase-row {
@@ -631,6 +872,18 @@
     }
     .metrics-row {
       grid-template-columns: repeat(2, 1fr);
+    }
+    .system-row {
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .hw-gauges {
+      border-left: none;
+      padding-left: 0;
+    }
+    .inference-strip {
+      border-left: none;
+      padding-left: 0;
     }
   }
 </style>
