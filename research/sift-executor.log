@@ -12,3 +12,17 @@
 2026-05-28T10:22:38 [SIFT] INFO Processing ticket RSH-001: what are the latest open source models that can be run locally through lemonade?
 2026-05-28T10:23:23 [SIFT] INFO HTTP Request: POST http://[::1]:13305/v1/chat/completions "HTTP/1.1 200 OK"
 2026-05-28T10:23:23 [SIFT] INFO Report written to C:\Users\rad_t\.openclaw\workspace\bumblebee\research\reports\RSH-001.report.md (4868 chars)
+2026-05-28T10:40:18 [SIFT] INFO Sift research executor starting — db=C:\Users\rad_t\.openclaw\workspace\bumblebee\research\research.db reports=C:\Users\rad_t\.openclaw\workspace\bumblebee\research\reports
+2026-05-28T10:40:18 [SIFT] WARNING No Brave API key found at C:\Users\rad_t\.bumblebee\brave-api-key.txt — Sift will use LLM knowledge only
+2026-05-28T10:40:19 [SIFT] INFO HTTP Request: GET http://[::1]:13305/api/v1/health "HTTP/1.1 200 OK"
+2026-05-28T10:40:19 [SIFT] INFO HTTP Request: GET http://[::1]:13305/api/v1/models "HTTP/1.1 200 OK"
+2026-05-28T10:40:19 [SIFT] INFO Downloading Sift model user.gemma-4-E4B-it-GGUF...
+2026-05-28T10:40:20 [SIFT] INFO HTTP Request: POST http://[::1]:13305/v1/pull "HTTP/1.1 200 OK"
+2026-05-28T10:40:20 [SIFT] INFO Download complete: 
+2026-05-28T10:40:20 [SIFT] INFO Loading Sift model user.gemma-4-E4B-it-GGUF (ctx_size=32768)...
+2026-05-28T10:40:20 [SIFT] INFO HTTP Request: POST http://[::1]:13305/v1/load "HTTP/1.1 200 OK"
+2026-05-28T10:40:20 [SIFT] INFO Sift model loaded: 
+2026-05-28T10:40:20 [SIFT] INFO Using model: user.gemma-4-E4B-it-GGUF
+2026-05-28T10:40:20 [SIFT] INFO Processing ticket RSH-002: is gemma4 or qwen better for general chat?
+2026-05-28T10:40:55 [SIFT] INFO HTTP Request: POST http://[::1]:13305/v1/chat/completions "HTTP/1.1 200 OK"
+2026-05-28T10:40:55 [SIFT] INFO Report written to C:\Users\rad_t\.openclaw\workspace\bumblebee\research\reports\RSH-002.report.md (4246 chars)
