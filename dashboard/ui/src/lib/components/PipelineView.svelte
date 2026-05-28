@@ -15,9 +15,6 @@
   let state: PipelineState;
   const unsub = pipelineStore.subscribe(s => state = s);
 
-  // Cost data from API
-  let cloudCost = 0;
-  let localCost = 0;
   let costPoller: ReturnType<typeof setInterval> | null = null;
 
   // Auto-detect pipeline phase from project status on load
@@ -29,21 +26,6 @@
     if (['scaffolded', 'running', 'approved'].includes(projectStatus) && state.phase === 'idle') {
       pipelineStore.startCoding(slug);
     }
-    // Poll costs
-    fetchCosts(slug);
-    costPoller = setInterval(() => fetchCosts(slug), 10000);
-  }
-
-  async function fetchCosts(s: string) {
-    if (!s) return;
-    try {
-      const resp = await fetch(`/api/costs/${s}`);
-      if (resp.ok) {
-        const data = await resp.json();
-        cloudCost = data.cloud_costs?.gpt4o ?? 0;
-        localCost = data.local_cost ?? 0;
-      }
-    } catch { /* ignore */ }
   }
 
   // Sync pipeline store from ticket SSE
@@ -127,8 +109,14 @@
     </div>
   </div>
 
-  <!-- Three-phase blocks -->
+  <!-- Forge Row: Creating Tickets → Coding → QA Review -->
   <div class="phase-row">
+    <!-- Forge Avatar -->
+    <div class="row-avatar">
+      <img src="/images/forge-avatar.png" alt="Forge" class="avatar-img" />
+      <span class="avatar-name">Forge</span>
+    </div>
+
     <!-- Creating Tickets -->
     <div class="phase-block" class:active={creatingActive} class:done={creatingDone} class:idle={!creatingActive && !creatingDone}>
       <div class="phase-top">
@@ -249,29 +237,51 @@
     </div>
   {/if}
 
-  <!-- System & Cost Metrics -->
-  <div class="metrics-section">
-    <!-- Row 1: Costs -->
-    <div class="metrics-row">
-      <div class="metric-card">
-        <span class="mc-label">Total Tickets</span>
-        <span class="mc-value">{state.totalTickets || state.createdTickets || '--'}</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Cloud Cost</span>
-        <span class="mc-value cloud-cost">{cloudCost > 0 ? `$${cloudCost.toFixed(2)}` : state.decompCost > 0 ? `~$${state.decompCost.toFixed(2)}` : '$0.00'}</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Local Cost</span>
-        <span class="mc-value local-cost">$0.00</span>
-      </div>
-      <div class="metric-card">
-        <span class="mc-label">Elapsed</span>
-        <span class="mc-value">{state.phase !== 'idle' ? elapsed : '--'}</span>
-      </div>
+  <!-- Sift Row: Searching Internet → Compiling Report -->
+  <div class="phase-row sift-row">
+    <!-- Sift Avatar -->
+    <div class="row-avatar">
+      <img src="/images/sift-avatar.png" alt="Sift" class="avatar-img" />
+      <span class="avatar-name">Sift</span>
     </div>
 
-    <!-- Row 2: System Panels (Pixel Activity | Hardware | Local AI) -->
+    <!-- Searching Internet -->
+    <div class="phase-block idle">
+      <div class="phase-top">
+        <span class="phase-badge local">⚡ Local</span>
+      </div>
+      <h3 class="phase-title">Searching Internet</h3>
+      <div class="phase-metric">
+        <span class="metric-big">--</span>
+        <span class="metric-sub">queries</span>
+      </div>
+      <span class="cost-label">$0.00</span>
+    </div>
+
+    <!-- Arrow -->
+    <div class="phase-arrow">
+      <svg width="32" height="24" viewBox="0 0 32 24">
+        <path d="M0 12 L24 12 M18 6 L24 12 L18 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Compiling Report -->
+    <div class="phase-block idle">
+      <div class="phase-top">
+        <span class="phase-badge local">⚡ Local</span>
+      </div>
+      <h3 class="phase-title">Compiling Report</h3>
+      <div class="phase-metric">
+        <span class="metric-big">--</span>
+        <span class="metric-sub">reports</span>
+      </div>
+      <span class="cost-label">$0.00</span>
+    </div>
+  </div>
+
+  <!-- System Panels (Cloud AI Activity | Hardware | Local AI) -->
+  <div class="metrics-section">
+    <!-- System Panels -->
     <div class="three-col-row">
       <div class="panel">
         <PixelActivity />
@@ -380,6 +390,38 @@
     display: flex;
     align-items: stretch;
     gap: 0;
+  }
+
+  /* Row avatar */
+  .row-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-right: 16px;
+    flex-shrink: 0;
+  }
+
+  .avatar-img {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .avatar-name {
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+  }
+
+  .sift-row {
+    margin-top: 4px;
   }
 
   .phase-arrow {
@@ -599,45 +641,7 @@
 
   .error-icon { font-size: 1rem; }
 
-  /* Bottom metrics row */
-  .metrics-row {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-  }
 
-  .metric-card {
-    background: var(--color-bg-panel);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 8px;
-    padding: 12px 16px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .mc-label {
-    font-size: 0.6rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-muted);
-  }
-
-  .mc-value {
-    font-size: 1.1rem;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--color-text-primary);
-  }
-
-  .mc-value.cloud-cost {
-    color: var(--color-accent-primary);
-  }
-
-  .mc-value.local-cost {
-    color: var(--color-accent-worker);
-  }
 
   /* System panels row */
   .metrics-section {
@@ -671,9 +675,6 @@
       transform: rotate(90deg);
       padding: 4px 0;
       justify-content: center;
-    }
-    .metrics-row {
-      grid-template-columns: repeat(2, 1fr);
     }
     .three-col-row {
       grid-template-columns: 1fr 1fr;
