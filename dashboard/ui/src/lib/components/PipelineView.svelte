@@ -85,7 +85,7 @@
   // Phase activity states
   $: creatingActive = state.phase === 'creating' || state.phase === 'committing';
   $: codingActive = state.phase === 'coding';
-  $: qaActive = state.phase === 'qa' || state.phase === 'done';
+  $: qaActive = state.phase === 'integrating' || state.phase === 'done';
 
   // Block values
   $: creatingCount = state.createdTickets;
@@ -96,7 +96,7 @@
 
   // Phase completion checks
   $: creatingDone = state.totalTickets > 0 && state.phase !== 'creating' && state.phase !== 'committing';
-  $: codingDone = state.phase === 'qa' || state.phase === 'done';
+  $: codingDone = state.phase === 'integrating' || state.phase === 'done';
   $: allDone = state.phase === 'done';
 
   // Sift research stats
@@ -155,7 +155,7 @@
     </div>
   </div>
 
-  <!-- Forge Row: Creating Tickets → Coding → QA Review -->
+  <!-- Forge Row: Creating Tickets → Coding → Integration -->
   <div class="phase-row">
     <!-- Forge Avatar + New Project -->
     <div class="row-avatar">
@@ -267,17 +267,17 @@
       </svg>
     </div>
 
-    <!-- QA Review -->
+    <!-- Integration / Wiring -->
     <div class="phase-block" class:active={qaActive && !allDone} class:done={allDone} class:idle={!qaActive}>
       <div class="phase-top">
         <span class="phase-badge cloud">☁ Cloud</span>
         {#if qaActive && !allDone}
-          <span class="phase-status pulse">Reviewing...</span>
+          <span class="phase-status pulse">Wiring...</span>
         {:else if allDone}
           <span class="phase-status check">✓ Ready</span>
         {/if}
       </div>
-      <h3 class="phase-title">QA Review</h3>
+      <h3 class="phase-title">Integration</h3>
       <div class="phase-metric">
         {#if qaActive || codingDone}
           <span class="metric-big">{qaCount}</span>

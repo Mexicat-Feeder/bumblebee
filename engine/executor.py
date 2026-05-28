@@ -851,4 +851,30 @@ class Executor:
 
             time.sleep(self.config.cycle_interval_seconds)
 
+        # --- Integration / Wiring Pass ---
+        # After all tickets are done, run a cloud model to fix cross-file connections
+        qa_verified = self.conn.execute(
+            "SELECT COUNT(*) as c FROM tickets WHERE status='qa_verified'"
+        ).fetchone()["c"]
+        total = self.conn.execute("SELECT COUNT(*) as c FROM tickets").fetchone()["c"]
+        blocked = self.conn.execute(
+            "SELECT COUNT(*) as c FROM tickets WHERE status='blocked'"
+        ).fetchone()["c"]
+
+        if qa_verified > 0 and (qa_verified + blocked) == total:
+            log.info("All tickets processed (%d verified, %d blocked). Running integration pass...", qa_verified, blocked)
+            try:
+                from .integration import run_integration
+                deliverable_root = Path(self.config.deliverable_root)
+                ok, note, files_written = run_integration(self.config, deliverable_root)
+                if ok:
+                    log.info("Integration pass completed: %s", note)
+                    if files_written:
+                        for f in files_written:
+                            log.info("  + %s", f)
+                else:
+                    log.warning("Integration pass failed: %s", note)
+            except Exception as e:
+                log.error("Integration pass error: %s", e)
+
         return results

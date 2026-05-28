@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store';
 
-export type PipelinePhase = 'idle' | 'creating' | 'committing' | 'coding' | 'qa' | 'done';
+export type PipelinePhase = 'idle' | 'creating' | 'committing' | 'coding' | 'integrating' | 'done';
 
 export interface PipelineTicket {
   id: string;
@@ -175,10 +175,10 @@ function createPipelineStore() {
       if (!data.running && codingRemaining === 0 && totalDone > 0) {
         update(s => {
           if (s.phase === 'coding') {
-            return { ...s, phase: 'qa' };
+            return { ...s, phase: 'integrating' };
           }
           // All verified (or verified + blocked) and executor stopped → done
-          if (s.phase === 'qa' && qaVerified > 0 && codingRemaining === 0 && (done === 0 || done + qaVerified + blocked === s.totalTickets)) {
+          if (s.phase === 'integrating' && qaVerified > 0 && codingRemaining === 0 && (done === 0 || done + qaVerified + blocked === s.totalTickets)) {
             stopTimers();
             return { ...s, phase: 'done' };
           }
