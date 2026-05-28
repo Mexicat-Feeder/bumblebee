@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 import sqlite3
 import sys
@@ -49,6 +50,9 @@ def _load_cloud_config() -> tuple[str, str, str]:
     api_key = ""
     if key_path.exists():
         api_key = key_path.read_text(encoding="utf-8").strip()
+    # Fallback to OPENAI_API_KEY env var
+    if not api_key:
+        api_key = os.environ.get("OPENAI_API_KEY", "")
 
     # Read optional config override
     config_path = bumblebee_dir / "cloud-config.json"
@@ -470,9 +474,13 @@ def commit_decomposition(slug: str):
     # Write AI config into project-config.json
     _inject_ai_config(config_path, project)
 
-    # Get DB path from project config
+    # Get DB path from project config — resolve relative to the config file's directory
     config_data = json.loads(config_path.read_text(encoding="utf-8"))
-    db_path = config_data.get("db_path", str(config_path.parent / "tickets.db"))
+    raw_db_path = config_data.get("db_path", str(config_path.parent / "tickets.db"))
+    db_path_obj = Path(raw_db_path)
+    if not db_path_obj.is_absolute():
+        db_path_obj = (config_path.parent / db_path_obj).resolve()
+    db_path = str(db_path_obj)
 
     # Commit plan to DB
     from engine.event_log import init_db
@@ -511,36 +519,40 @@ def commit_decomposition(slug: str):
 
 
 def _inject_ai_config(config_path: Path, project: dict) -> None:
-    """Write AI model config into the project's project-config.json."""
+    """Write AI model config into the project's project-config.json.
+    
+    Default: Lemonade local models. Only use cloud if explicitly configured.
+    Preserves existing config values when new values would be empty.
+    """
     config = get_config()
     ai = config.get("ai", {})
     proj_ai = project.get("ai_config", {})
+    lemonade_url = ai.get("lemonade_url", DEFAULT_LEMONADE_URL)
 
     config_data = json.loads(config_path.read_text(encoding="utf-8"))
+    existing_models = config_data.get("models", {})
 
-    # Determine forge model settings
-    forge_source = proj_ai.get("forge_model_source") or ai.get("forge_model_source", "custom")
-    forge_model = proj_ai.get("forge_model_id") or ai.get("forge_model_id", "")
-    vision_source = proj_ai.get("vision_model_source") or ai.get("vision_model_source", "custom")
-    vision_model = proj_ai.get("vision_model_id") or ai.get("vision_model_id", "")
-    decomp_source = proj_ai.get("decomp_model_source") or ai.get("decomp_model_source", "lemonade")
-    decomp_model = proj_ai.get("decomp_model_id") or ai.get("decomp_model_id", "")
+    # Determine forge model — default to Lemonade, only override if explicitly set
+    forge_source = proj_ai.get("forge_model_source") or ai.get("forge_model_source", "lemonade")
+    forge_model = proj_ai.get("forge_model_id") or ai.get("forge_model_id") or existing_models.get("forge", "Qwen3.6-27B-GGUF")
+    vision_model = proj_ai.get("vision_model_id") or ai.get("vision_model_id") or existing_models.get("vision", forge_model)
+    decomp_model = proj_ai.get("decomp_model_id") or ai.get("decomp_model_id") or existing_models.get("decomp", "")
 
-    config_data["models"] = {
-        "forge": forge_model,
-        "vision": vision_model,
-        "decomp": decomp_model,
-    }
+    # Only update models — preserve all other config keys (paths, etc.)
+    models = config_data.get("models", {})
+    models["forge"] = forge_model
+    models["vision"] = vision_model
+    models["decomp"] = decomp_model
+    config_data["models"] = models
 
-    # Set API base URL and key based on forge source (coding is the primary consumer)
-    if forge_source == "lemonade":
-        config_data["api_base_url"] = ai.get("lemonade_url", DEFAULT_LEMONADE_URL) + "/v1"
+    # Default to Lemonade for Forge (local coding is the whole point)
+    if forge_source == "lemonade" or not ai.get("custom_api_base_url"):
+        config_data["api_base_url"] = lemonade_url + "/v1"
         config_data["api_key"] = ""
     else:
         config_data["api_base_url"] = ai.get("custom_api_base_url", "https://api.openai.com/v1")
         config_data["api_key"] = ai.get("custom_api_key", "")
 
-    # Also store lemonade URL for phases that use local
-    config_data["lemonade_url"] = ai.get("lemonade_url", DEFAULT_LEMONADE_URL)
+    config_data["lemonade_url"] = lemonade_url
 
     config_path.write_text(json.dumps(config_data, indent=2) + "\n", encoding="utf-8")

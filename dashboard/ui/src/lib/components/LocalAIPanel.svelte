@@ -1,10 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
 
+  interface ModelInfo {
+    id: string;
+    display_name: string;
+    recipe: string;
+    device: string;
+  }
+
   interface LemonadeData {
     is_live: boolean;
     active_model: string;
     active_model_raw: string;
+    all_models: ModelInfo[];
     tokens_per_second: number | null;
     time_to_first_token: number | null;
     input_tokens: number | null;
@@ -20,26 +28,30 @@
   let interval: ReturnType<typeof setInterval> | null = null;
 
   function fmtTps(v: number | null): string {
-    if (v === null || v === undefined) return '—';
+    if (v === null || v === undefined) return '--';
     return v.toFixed(1);
   }
 
   function fmtTtft(v: number | null): string {
-    if (v === null || v === undefined) return '—';
+    if (v === null || v === undefined) return '--';
     return v.toFixed(2) + 's';
   }
 
   function fmtTokens(v: number | null): string {
-    if (v === null || v === undefined) return '—';
+    if (v === null || v === undefined) return '--';
     if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'M';
     if (v >= 1_000) return (v / 1_000).toFixed(1) + 'k';
     return String(v);
   }
 
-  function fmtSince(iso: string | null): string {
-    if (!iso) return '';
-    const d = new Date(iso);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  function modelRole(id: string): string {
+    const lower = id.toLowerCase();
+    if (lower.includes('gemma') || lower.includes('e4b') || lower.includes('sift')) return 'Sift';
+    return 'Forge';
+  }
+
+  function modelColor(id: string): string {
+    return modelRole(id) === 'Sift' ? '#c97bdc' : '#ffd166';
   }
 
   async function fetchData() {
@@ -53,64 +65,59 @@
   onMount(() => { fetchData(); interval = setInterval(fetchData, 2000); });
   onDestroy(() => { if (interval) clearInterval(interval); });
 
-  $: offline = data !== null && !data?.is_live;
-  $: tps = data?.is_live ? data.tokens_per_second : data?.peak_tokens_per_second;
+  $: models = data?.all_models ?? [];
+  $: activeRaw = data?.active_model_raw ?? '';
+  $: tps = data?.tokens_per_second;
+  $: ttft = data?.time_to_first_token;
+  $: inputTok = data?.input_tokens;
+  $: outputTok = data?.output_tokens;
 </script>
 
 <div class="ai-panel">
   <div class="panel-header">
     <span class="panel-title">LOCAL AI ACTIVITY</span>
-    {#if data?.project_start}
-      <span class="since-badge">since {fmtSince(data.project_start)}</span>
-    {/if}
-  </div>
-
-  <div class="model-row">
-    <span class="model-provider">Lemonade</span>
-    <span class="model-name">{data?.active_model ?? 'Qwen3.6 35B'}</span>
-    {#if data && !data.is_live}
-      <span class="offline-dot" title="Lemonade offline — showing peak values">●</span>
-    {/if}
+    <span class="engine-badge">Lemonade</span>
   </div>
 
   {#if loading}
-    <div class="loading">Loading…</div>
+    <div class="loading">Loading...</div>
   {:else if !data}
     <div class="unavailable">Lemonade data unavailable</div>
+  {:else if models.length === 0}
+    <div class="unavailable">No models loaded</div>
   {:else}
-    <div class="stats-grid">
-      <div class="stat-block highlight-tps">
-        <div class="stat-label-row">
-          <span class="stat-label">TOK/S</span>
-          {#if offline}<span class="peak-badge">peak</span>{/if}
+    {#each models as model (model.id)}
+      {@const isActive = model.id === activeRaw}
+      {@const role = modelRole(model.id)}
+      {@const color = modelColor(model.id)}
+      <div class="model-section" class:active-model={isActive}>
+        <div class="model-header">
+          <span class="model-role" style="color: {color}">{role}</span>
+          <span class="model-name">{model.display_name}</span>
+          {#if isActive}
+            <span class="active-dot" style="background: {color}" title="Currently generating"></span>
+          {/if}
         </div>
-        <div class="stat-value tps-color">{fmtTps(tps)}</div>
-      </div>
-
-      <div class="stat-block">
-        <div class="stat-label-row">
-          <span class="stat-label">TTFT</span>
-          {#if offline}<span class="last-badge">last</span>{/if}
+        <div class="model-stats">
+          <div class="mini-stat" class:highlight={isActive} style="--accent: {color}">
+            <span class="mini-label">TOK/S</span>
+            <span class="mini-value" style="color: {color}">{isActive ? fmtTps(tps) : '--'}</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-label">TTFT</span>
+            <span class="mini-value">{isActive ? fmtTtft(ttft) : '--'}</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-label">IN</span>
+            <span class="mini-value">{isActive ? fmtTokens(inputTok) : '--'}</span>
+          </div>
+          <div class="mini-stat">
+            <span class="mini-label">OUT</span>
+            <span class="mini-value">{isActive ? fmtTokens(outputTok) : '--'}</span>
+          </div>
         </div>
-        <div class="stat-value ttft-color">{fmtTtft(data.time_to_first_token)}</div>
       </div>
-
-      <div class="stat-block">
-        <div class="stat-label-row">
-          <span class="stat-label">INPUT TOKENS</span>
-          {#if offline}<span class="last-badge">last</span>{/if}
-        </div>
-        <div class="stat-value in-color">{fmtTokens(data.input_tokens)}</div>
-      </div>
-
-      <div class="stat-block">
-        <div class="stat-label-row">
-          <span class="stat-label">OUTPUT TOKENS</span>
-          {#if offline}<span class="last-badge">last</span>{/if}
-        </div>
-        <div class="stat-value out-color">{fmtTokens(data.output_tokens)}</div>
-      </div>
-    </div>
+    {/each}
   {/if}
 </div>
 
@@ -126,8 +133,6 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
-    flex-wrap: wrap;
   }
 
   .panel-title {
@@ -138,108 +143,100 @@
     letter-spacing: 0.05em;
   }
 
-  .since-badge {
-    font-size: 11px;
-    color: var(--color-text-muted, rgba(255,255,255,0.35));
-    background: rgba(255,255,255,0.05);
-    padding: 2px 8px;
-    border-radius: 10px;
-  }
-
-  .model-row {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-top: -4px;
-  }
-
-  .model-provider {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--color-text-muted, rgba(255,255,255,0.4));
-  }
-
-  .model-name {
-    font-size: 15px;
+  .engine-badge {
+    font-size: 10px;
     font-weight: 600;
-    color: var(--color-text-primary, #fff);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: rgba(89, 227, 138, 0.1);
+    color: var(--color-accent-worker, #59e38a);
   }
 
-  .offline-dot {
-    color: #ff6b6b;
-    font-size: 8px;
-    line-height: 1;
-  }
-
-  .stats-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    flex: 1;
-  }
-
-  .stat-block {
-    background: rgba(255,255,255,0.04);
+  .model-section {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 10px 12px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
+    transition: border-color 0.3s;
   }
 
-  .stat-block.highlight-tps {
-    background: rgba(255, 209, 102, 0.07);
-    border: 1px solid rgba(255, 209, 102, 0.15);
+  .model-section.active-model {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
   }
 
-  .stat-label-row {
+  .model-header {
     display: flex;
     align-items: center;
+    gap: 8px;
+  }
+
+  .model-role {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .model-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-primary, #fff);
+  }
+
+  .active-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .model-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 6px;
   }
 
-  .stat-label {
-    font-size: 10px;
+  .mini-stat {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 6px;
+    padding: 6px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    text-align: center;
+  }
+
+  .mini-stat.highlight {
+    background: color-mix(in srgb, var(--accent) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 15%, transparent);
+  }
+
+  .mini-label {
+    font-size: 8px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--color-text-muted, rgba(255,255,255,0.4));
   }
 
-  .peak-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(255, 209, 102, 0.7);
-    background: rgba(255, 209, 102, 0.1);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-
-  .last-badge {
-    font-size: 9px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: rgba(107, 122, 141, 0.8);
-    background: rgba(107, 122, 141, 0.12);
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-
-  .stat-value {
-    font-size: 22px;
+  .mini-value {
+    font-size: 15px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
+    color: var(--color-text-primary, #fff);
     line-height: 1.1;
   }
-
-  .tps-color  { color: #ffd166; }
-  .ttft-color { color: #a8dadc; }
-  .in-color   { color: #7eb8f7; }
-  .out-color  { color: #c97bdc; }
 
   .loading, .unavailable {
     font-size: 13px;

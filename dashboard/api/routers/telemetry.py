@@ -50,17 +50,38 @@ async def hardware_full():
 
 @router.get("/telemetry/lemonade-full")
 async def lemonade_full():
-    """Full Local AI panel data: model, throughput, tokens, peaks."""
+    """Full Local AI panel data: all models, throughput, tokens, peaks."""
+    import httpx as _httpx
     config = get_config()
     lemonade_url = config.get("lemonadeUrl", "http://[::1]:13305")
     project_start = config.get("pixelProjectStart")
 
     lm = await get_inference_metrics(lemonade_url)
 
+    # Get all loaded models from health endpoint
+    all_models = []
+    try:
+        async with _httpx.AsyncClient() as client:
+            resp = await client.get(f"{lemonade_url}/api/v1/health", timeout=3.0)
+            if resp.status_code == 200:
+                health = resp.json()
+                for m in health.get("all_models_loaded", []):
+                    mid = m.get("model_name") or m.get("id") or ""
+                    from ..services.lemonade_client import _clean_model_name
+                    all_models.append({
+                        "id": mid,
+                        "display_name": _clean_model_name(mid),
+                        "recipe": m.get("recipe", ""),
+                        "device": m.get("device", ""),
+                    })
+    except Exception:
+        pass
+
     return {
         "is_live": lm.get("is_live", False),
         "active_model": lm.get("active_model", "Qwen3.6 35B"),
         "active_model_raw": lm.get("active_model_raw", ""),
+        "all_models": all_models,
         "tokens_per_second": lm.get("tokens_per_second"),
         "time_to_first_token": lm.get("time_to_first_token"),
         "input_tokens": lm.get("input_tokens"),

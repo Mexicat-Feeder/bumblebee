@@ -2,7 +2,9 @@
   import { onMount, onDestroy } from 'svelte';
   import { pipelineStore } from '$lib/stores/pipeline';
   import { ticketStore } from '$lib/stores/tickets';
-  import { openForgeDrawer, openSiftDrawer } from '$lib/stores/drawer';
+  import { openForgeDrawer, openSiftDrawer, openTicketDrawer, openReportDrawer, openCodingDrawer } from '$lib/stores/drawer';
+  import { researchStore } from '$lib/stores/research';
+  import { projectsStore } from '$lib/stores/projects';
   import type { PipelineState } from '$lib/stores/pipeline';
   import PixelActivity from '$lib/components/PixelActivity.svelte';
   import HardwarePanel from '$lib/components/HardwarePanel.svelte';
@@ -49,6 +51,26 @@
   // Show welcome state when no project is selected
   $: noProject = !slug;
 
+  let resetting = false;
+  let resetConfirm = false;
+
+  async function doReset() {
+    if (!resetConfirm) { resetConfirm = true; return; }
+    resetting = true;
+    resetConfirm = false;
+    try {
+      const resp = await fetch('/api/reset', { method: 'POST' });
+      if (resp.ok) {
+        pipelineStore.reset();
+        await researchStore.fetchTickets();
+        await projectsStore.fetchProjects();
+      }
+    } catch { /* ignore */ }
+    resetting = false;
+  }
+
+  function cancelReset() { resetConfirm = false; }
+
 
 
   // Formatted elapsed time
@@ -61,7 +83,7 @@
   }
 
   // Phase activity states
-  $: creatingActive = state.phase === 'creating';
+  $: creatingActive = state.phase === 'creating' || state.phase === 'committing';
   $: codingActive = state.phase === 'coding';
   $: qaActive = state.phase === 'qa' || state.phase === 'done';
 
@@ -73,9 +95,17 @@
   $: qaFailed = state.qaFailed;
 
   // Phase completion checks
-  $: creatingDone = state.totalTickets > 0 && state.phase !== 'creating';
+  $: creatingDone = state.totalTickets > 0 && state.phase !== 'creating' && state.phase !== 'committing';
   $: codingDone = state.phase === 'qa' || state.phase === 'done';
   $: allDone = state.phase === 'done';
+
+  // Sift research stats
+  $: siftTickets = $researchStore.tickets ?? [];
+  $: siftQueued = siftTickets.filter((t: any) => t.display_status === 'queued').length;
+  $: siftInProgress = siftTickets.filter((t: any) => t.display_status === 'in_progress').length;
+  $: siftComplete = siftTickets.filter((t: any) => t.display_status === 'complete').length;
+  $: siftTotal = siftTickets.length;
+  $: siftSearching = siftInProgress > 0;
 </script>
 
 {#if noProject}
@@ -99,6 +129,21 @@
     <div class="header-left">
       <span class="header-label">BUILD PIPELINE</span>
       <span class="header-project">{projectName}</span>
+      {#if resetConfirm}
+        <div class="reset-confirm">
+          <span class="reset-warn">Clear all tickets & research?</span>
+          <button class="reset-yes" on:click={doReset} disabled={resetting}>{resetting ? 'Resetting...' : 'Yes, reset'}</button>
+          <button class="reset-no" on:click={cancelReset}>Cancel</button>
+        </div>
+      {:else}
+        <button class="reset-btn" on:click={doReset} title="Reset demo to beginning">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+            <path d="M2 8a6 6 0 1 1 1.5 3.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            <path d="M2 12V8h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Reset
+        </button>
+      {/if}
     </div>
     <div class="header-right">
       {#if state.phase !== 'idle'}
@@ -127,7 +172,9 @@
     <div class="phase-block" class:active={creatingActive} class:done={creatingDone} class:idle={!creatingActive && !creatingDone}>
       <div class="phase-top">
         <span class="phase-badge cloud">☁ Cloud</span>
-        {#if creatingActive}
+        {#if state.phase === 'committing'}
+          <span class="phase-status pulse">Committing...</span>
+        {:else if creatingActive}
           <span class="phase-status pulse">Creating...</span>
         {:else if creatingDone}
           <span class="phase-status check">✓ Done</span>
@@ -149,6 +196,14 @@
         <div class="progress-bar">
           <div class="progress-fill pulse-bar"></div>
         </div>
+      {/if}
+      {#if creatingActive || creatingDone}
+        <button class="details-btn" on:click={openTicketDrawer} title="View ticket details">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 4h10M2 7h10M2 10h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Details
+        </button>
       {/if}
     </div>
 
@@ -194,6 +249,14 @@
             <div class="progress-fill pulse-bar"></div>
           {/if}
         </div>
+      {/if}
+      {#if codingActive || codingDone}
+        <button class="details-btn" on:click={openCodingDrawer} title="View build log">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 4h10M2 7h10M2 10h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Details
+        </button>
       {/if}
     </div>
 
@@ -257,36 +320,50 @@
     </div>
 
     <!-- Searching Internet -->
-    <div class="phase-block idle">
+    <div class="phase-block" class:active={siftSearching} class:done={siftQueued === 0 && siftComplete > 0 && siftInProgress === 0} class:idle={siftTotal === 0}>
       <div class="phase-top">
         <span class="phase-badge local">⚡ Local</span>
+        {#if siftSearching}
+          <span class="phase-status pulse">Searching...</span>
+        {/if}
       </div>
       <h3 class="phase-title">Searching Internet</h3>
       <div class="phase-metric">
-        <span class="metric-big">--</span>
-        <span class="metric-sub">queries</span>
+        <span class="metric-big">{siftQueued + siftInProgress}</span>
+        <span class="metric-sub">{siftSearching ? 'in queue' : 'queued'}</span>
       </div>
       <span class="cost-label">$0.00</span>
     </div>
 
     <!-- Arrow -->
-    <div class="phase-arrow">
+    <div class="phase-arrow" class:visible={siftComplete > 0 || siftInProgress > 0}>
       <svg width="32" height="24" viewBox="0 0 32 24">
         <path d="M0 12 L24 12 M18 6 L24 12 L18 18" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     </div>
 
     <!-- Compiling Report -->
-    <div class="phase-block idle">
+    <div class="phase-block" class:active={siftInProgress > 0} class:done={siftComplete > 0 && siftInProgress === 0 && siftQueued === 0} class:idle={siftComplete === 0 && siftInProgress === 0}>
       <div class="phase-top">
         <span class="phase-badge local">⚡ Local</span>
+        {#if siftComplete > 0}
+          <span class="phase-status check">✓ {siftComplete} done</span>
+        {/if}
       </div>
       <h3 class="phase-title">Compiling Report</h3>
       <div class="phase-metric">
-        <span class="metric-big">--</span>
-        <span class="metric-sub">reports</span>
+        <span class="metric-big">{siftComplete}</span>
+        <span class="metric-sub">report{siftComplete !== 1 ? 's' : ''}</span>
       </div>
       <span class="cost-label">$0.00</span>
+      {#if siftTotal > 0}
+        <button class="details-btn" on:click={openReportDrawer} title="View reports">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M2 4h10M2 7h10M2 10h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Details
+        </button>
+      {/if}
     </div>
   </div>
 
@@ -371,6 +448,62 @@
     font-size: 1rem;
     font-weight: 600;
     color: var(--color-text-primary);
+  }
+
+  .reset-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    color: var(--color-text-muted);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .reset-btn:hover {
+    color: #ff6b6b;
+    border-color: rgba(255, 107, 107, 0.4);
+  }
+
+  .reset-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .reset-warn {
+    font-size: 0.7rem;
+    color: #ff6b6b;
+  }
+
+  .reset-yes {
+    padding: 3px 10px;
+    background: rgba(255, 107, 107, 0.15);
+    border: 1px solid rgba(255, 107, 107, 0.4);
+    border-radius: 4px;
+    color: #ff6b6b;
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .reset-yes:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .reset-no {
+    padding: 3px 10px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    color: var(--color-text-muted);
+    font-family: var(--font-ui);
+    font-size: 0.65rem;
+    cursor: pointer;
   }
 
   .header-right {
@@ -630,6 +763,31 @@
   @keyframes progressPulse {
     0% { transform: translateX(-100%); }
     100% { transform: translateX(100%); }
+  }
+
+  /* Details button */
+  .details-btn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    color: var(--color-text-secondary);
+    font-family: var(--font-ui);
+    font-size: 0.7rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s, background-color 0.15s;
+    margin-top: auto;
+    width: fit-content;
+  }
+
+  .details-btn:hover {
+    color: var(--color-accent-primary);
+    border-color: rgba(58, 190, 255, 0.4);
+    background: rgba(58, 190, 255, 0.08);
   }
 
   /* Failed badge */

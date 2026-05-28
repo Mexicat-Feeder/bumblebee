@@ -7,6 +7,7 @@
   let loading = false;
   let error = '';
   let submitted = false;
+  let submittedId = '';
 
   async function submit() {
     if (!question.trim()) { error = 'Please enter a research question.'; return; }
@@ -24,10 +25,8 @@
       }
       const data = await res.json();
       submitted = true;
+      submittedId = data.ticket_id;
       await researchStore.fetchTickets();
-      // Switch to report view for the new ticket
-      selectedResearchId.set(data.ticket_id);
-      researchView.set('report');
     } catch (e: any) {
       error = e.message ?? 'Submit failed';
     }
@@ -45,6 +44,16 @@
     <div class="error-banner">{error}</div>
   {/if}
 
+  {#if submitted}
+  <div class="success-card">
+    <div class="success-icon">&#x2705;</div>
+    <h2 class="success-title">Research Queued</h2>
+    <p class="success-sub"><strong>{submittedId}</strong> has been added to the Sift queue. It will be picked up automatically.</p>
+    <button class="another-btn" on:click={() => { submitted = false; question = ''; context = ''; submittedId = ''; }}>
+      Submit Another
+    </button>
+  </div>
+  {:else}
   <div class="form-card">
     <label class="field-label" for="question">Research Question <span class="required">*</span></label>
     <textarea
@@ -77,6 +86,7 @@
       {loading ? 'Submitting…' : 'Submit to Queue'}
     </button>
   </div>
+  {/if}
 </div>
 
 <style>
@@ -173,4 +183,50 @@
 
   .submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
   .submit-btn:hover:not(:disabled) { opacity: 0.85; }
+
+  .success-card {
+    background: var(--color-bg-panel);
+    border: 1px solid rgba(89, 227, 138, 0.2);
+    border-radius: var(--radius-panel);
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    text-align: center;
+  }
+
+  .success-icon { font-size: 36px; }
+
+  .success-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .success-sub {
+    font-size: 13px;
+    color: var(--color-text-muted);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .another-btn {
+    margin-top: 8px;
+    padding: 8px 20px;
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--radius-badge);
+    color: var(--color-text-secondary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .another-btn:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    color: var(--color-text-primary);
+  }
 </style>

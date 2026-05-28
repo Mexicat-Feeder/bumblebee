@@ -1,11 +1,12 @@
 {
   "ticketDbPaths": {
-    "food-cart": "../demos/food-cart/tickets.db"
+    "food-cart": "C:\\Users\\rad_t\\.openclaw\\workspace\\bumblebee\\demos\\food-cart\\tickets.db"
   },
   "apiPort": 8765,
   "healthChecks": [],
   "lemonadeUrl": "http://[::1]:13305",
   "pixelProjectStart": null,
   "researchDbPath": "../research/research.db",
-  "researchRoot": "../research"
+  "researchRoot": "../research",
+  "pixelSessionsPath": "C:\\Users\\rad_t\\.openclaw\\agents\\main\\sessions\\sessions.json"
 }

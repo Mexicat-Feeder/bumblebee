@@ -1,6 +1,15 @@
 import { writable, derived } from 'svelte/store';
 
-export type PipelinePhase = 'idle' | 'creating' | 'coding' | 'qa' | 'done';
+export type PipelinePhase = 'idle' | 'creating' | 'committing' | 'coding' | 'qa' | 'done';
+
+export interface PipelineTicket {
+  id: string;
+  gate: number;
+  description: string;
+  required_output_files: string[];
+  depends_on: string[];
+  is_parent: boolean;
+}
 
 export interface PipelineState {
   phase: PipelinePhase;
@@ -8,6 +17,8 @@ export interface PipelineState {
   createdTickets: number;
   /** Total tickets (set when decompose finishes) */
   totalTickets: number;
+  /** Actual ticket objects from decomposition */
+  tickets: PipelineTicket[];
   /** Tickets still in coding queue (pending + in_progress) */
   codingRemaining: number;
   /** Currently building ticket ID */
@@ -32,6 +43,7 @@ const INITIAL: PipelineState = {
   phase: 'idle',
   createdTickets: 0,
   totalTickets: 0,
+  tickets: [],
   codingRemaining: 0,
   codingCurrentId: '',
   codingCurrentDesc: '',
@@ -68,25 +80,58 @@ function createPipelineStore() {
   /** Signal decomposition has started (DecompReview handles the actual SSE) */
   function startDecompose() {
     reset();
-    update(s => ({ ...s, phase: 'creating' }));
+    update(s => ({ ...s, phase: 'creating', tickets: [] }));
     startElapsedTimer();
   }
 
   /** Called by DecompReview as each ticket arrives from SSE */
-  function ticketCreated() {
+  function ticketCreated(ticket?: PipelineTicket) {
     update(s => ({
       ...s,
       createdTickets: s.createdTickets + 1,
+      tickets: ticket ? [...s.tickets, ticket] : s.tickets,
     }));
   }
 
-  /** Called when decomposition plan is complete */
-  function decompComplete(totalTickets: number) {
+  /** Called when decomposition plan is complete — auto-commits and starts executor */
+  function decompComplete(totalTickets: number, slug?: string) {
     update(s => ({
       ...s,
       totalTickets: totalTickets || s.createdTickets,
       decompCost: 0.03,
+      phase: 'committing',
     }));
+    if (slug) {
+      autoCommitAndBuild(slug);
+    }
+  }
+
+  /** Auto-commit the plan, then start the executor */
+  async function autoCommitAndBuild(slug: string) {
+    try {
+      // Commit plan to DB
+      const commitResp = await fetch(`/api/projects/${slug}/decompose/commit`, {
+        method: 'POST',
+      });
+      if (!commitResp.ok) {
+        const data = await commitResp.json().catch(() => ({ detail: commitResp.statusText }));
+        throw new Error(`Commit failed: ${data.detail || commitResp.status}`);
+      }
+
+      // Start the executor
+      const startResp = await fetch(`/api/projects/${slug}/executor/start`, {
+        method: 'POST',
+      });
+      if (!startResp.ok) {
+        const data = await startResp.json().catch(() => ({ detail: startResp.statusText }));
+        throw new Error(`Executor start failed: ${data.detail || startResp.status}`);
+      }
+
+      // Transition to coding
+      startCoding(slug);
+    } catch (e: any) {
+      update(s => ({ ...s, error: e.message || 'Failed to start build', phase: 'creating' }));
+    }
   }
 
   /** Called when decomposition fails */
@@ -125,11 +170,17 @@ function createPipelineStore() {
         totalTickets: s.totalTickets || Object.values(stats).reduce((a: number, b: number) => a + b, 0),
       }));
 
-      // Auto-transition to QA phase when coding is done
-      if (!data.running && codingRemaining === 0 && (done + qaVerified + blocked) > 0) {
+      // Auto-transition phases
+      const totalDone = done + qaVerified + blocked;
+      if (!data.running && codingRemaining === 0 && totalDone > 0) {
         update(s => {
           if (s.phase === 'coding') {
             return { ...s, phase: 'qa' };
+          }
+          // All verified (or verified + blocked) and executor stopped → done
+          if (s.phase === 'qa' && qaVerified > 0 && codingRemaining === 0 && (done === 0 || done + qaVerified + blocked === s.totalTickets)) {
+            stopTimers();
+            return { ...s, phase: 'done' };
           }
           return s;
         });

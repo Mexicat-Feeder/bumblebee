@@ -5,6 +5,9 @@
   import { projectsStore, selectedProject } from '$lib/stores/projects';
   import { drawerOpen } from '$lib/stores/drawer';
   import PipelineView from '$lib/components/PipelineView.svelte';
+  import TicketDetailsDrawer from '$lib/components/TicketDetailsDrawer.svelte';
+  import ReportDrawer from '$lib/components/ReportDrawer.svelte';
+  import CodingDrawer from '$lib/components/CodingDrawer.svelte';
 
   // Auto-select first project if none selected (but not while drawer is open)
   $: if (!$selectedProject && $projectsStore.projects.length > 0 && !$drawerOpen) {
@@ -33,3 +36,7 @@
   projectName={$selectedProject?.name ?? 'Agent Swarm'}
   projectStatus={$selectedProject?.status ?? ''}
 />
+
+<TicketDetailsDrawer />
+<ReportDrawer />
+<CodingDrawer slug={$selectedProject?.slug ?? ''} />

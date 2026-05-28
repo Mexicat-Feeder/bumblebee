@@ -80,4 +80,12 @@ def submit(body: SubmitRequest):
     if not root:
         raise HTTPException(status_code=503, detail="researchRoot not configured")
     result = submit_ticket(db, root, body.question, body.context or "", body.priority or 5)
+
+    # Auto-start Sift executor if not running
+    try:
+        from .research_executor import ensure_running
+        ensure_running()
+    except Exception as e:
+        log.warning("Auto-start Sift executor failed (non-fatal): %s", e)
+
     return result

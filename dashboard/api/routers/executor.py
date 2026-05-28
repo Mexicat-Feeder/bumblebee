@@ -38,6 +38,11 @@ _lock = threading.Lock()
 
 
 def _projects_dir(slug: str) -> Path:
+    """Resolve the project directory, checking demos/ first (same as decompose)."""
+    dashboard_root = Path(__file__).resolve().parent.parent.parent
+    demos = dashboard_root.parent / "demos" / slug
+    if demos.exists():
+        return demos
     config = get_config()
     ws = config.get("workspaceRoot", "")
     if ws:

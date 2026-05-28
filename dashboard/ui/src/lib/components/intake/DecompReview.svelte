@@ -103,12 +103,12 @@
             try {
               const ticket: Ticket = JSON.parse(eventData);
               streamingTickets = [...streamingTickets, ticket];
-              pipelineStore.ticketCreated();
+              pipelineStore.ticketCreated(ticket);
             } catch { /* skip malformed */ }
           } else if (eventType === 'plan') {
             try {
               plan = JSON.parse(eventData);
-              pipelineStore.decompComplete(plan?.total_tickets ?? streamingTickets.length);
+              pipelineStore.decompComplete(plan?.total_tickets ?? streamingTickets.length, slug);
             } catch { /* skip */ }
           } else if (eventType === 'error') {
             try {

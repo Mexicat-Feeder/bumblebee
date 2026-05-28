@@ -60,15 +60,34 @@
     finally { loading = false; }
   }
 
-  onMount(() => { fetchStats(); interval = setInterval(fetchStats, 15000); });
+  // Fetch local AI token counts for cost savings calculation
+  let localInputTokens = 0;
+  let localOutputTokens = 0;
+
+  async function fetchLocalTokens() {
+    try {
+      const res = await fetch('/api/telemetry/lemonade-full');
+      if (res.ok) {
+        const d = await res.json();
+        localInputTokens = d.input_tokens ?? 0;
+        localOutputTokens = d.output_tokens ?? 0;
+      }
+    } catch { /* keep last */ }
+  }
+
+  onMount(() => {
+    fetchStats();
+    fetchLocalTokens();
+    interval = setInterval(() => { fetchStats(); fetchLocalTokens(); }, 15000);
+  });
   onDestroy(() => { if (interval) clearInterval(interval); });
+
+  // Cloud cost savings: what local tokens would have cost on Claude Opus
+  // Claude Opus 4: $15/M input, $75/M output
+  $: savedUsd = (localInputTokens / 1_000_000) * 15 + (localOutputTokens / 1_000_000) * 75;
 
   $: totalInput = (stats.cacheRead ?? 0) + (stats.inputTokens ?? 0);
   $: contextLimit = stats.contextTokens ?? 1_000_000;
-
-  $: cacheHitPct = totalInput > 0
-    ? Math.round(((stats.cacheRead ?? 0) / totalInput) * 100)
-    : 0;
 
   $: contextPct = contextLimit > 0
     ? Math.round((totalInput / contextLimit) * 100)
@@ -103,9 +122,9 @@
       </div>
 
       <div class="stat-block highlight-cache">
-        <div class="stat-label">CACHE HIT</div>
-        <div class="stat-value cache-color">{cacheHitPct}%</div>
-        <div class="stat-sub">OpenClaw workspace & tools</div>
+        <div class="stat-label">LOCAL SAVINGS</div>
+        <div class="stat-value cache-color">{formatCost(savedUsd)}</div>
+        <div class="stat-sub">vs cloud for local work</div>
       </div>
 
       <div class="stat-block">

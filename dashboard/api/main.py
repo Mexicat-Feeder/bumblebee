@@ -20,7 +20,7 @@ app.add_middleware(
 app.include_router(health.router, prefix="/api")
 
 # Auto-discover optional routers
-for _rname in ["intake", "uploads", "tickets", "projects", "telemetry", "logs", "loops", "pixel_stats", "research", "ai_config", "qa_chat", "decompose", "executor", "costs"]:
+for _rname in ["intake", "uploads", "tickets", "projects", "telemetry", "logs", "loops", "pixel_stats", "research", "research_executor", "ai_config", "qa_chat", "decompose", "executor", "costs", "reset"]:
     try:
         _rmod = importlib.import_module(f".routers.{_rname}", __package__)
         if hasattr(_rmod, "router"):
