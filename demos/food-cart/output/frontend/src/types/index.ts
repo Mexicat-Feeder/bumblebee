@@ -9,18 +9,11 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category: string;
+  category_id: number;
+  category_name: string;
   photo_url: string;
   available: boolean;
   sort_order: number;
-}
-
-export interface Settings {
-  cart_name: string;
-  tagline: string;
-  is_open: boolean;
-  estimated_wait_minutes: number;
-  admin_pin: string;
 }
 
 export interface OrderItem {
@@ -39,7 +32,20 @@ export interface Order {
   status: string;
   created_at: string;
   updated_at: string;
-  items?: OrderItem[];
+  items: OrderItem[];
+}
+
+export interface Settings {
+  cart_name: string;
+  tagline: string;
+  is_open: boolean;
+  estimated_wait_minutes: number;
+  admin_pin: string;
+}
+
+export interface CartItem {
+  item: MenuItem;
+  quantity: number;
 }
 
 export interface CreateOrderItemInput {
@@ -56,20 +62,33 @@ export interface UpdateOrderStatusInput {
   status: string;
 }
 
-export interface UpsertMenuItemInput {
+export interface CategoryInput {
+  name: string;
+  sort_order: number;
+}
+
+export interface MenuItemInput {
   name: string;
   description: string;
   price: number;
-  category: string;
+  category_id: number;
   photo_url: string;
   available: boolean;
   sort_order: number;
 }
 
-export interface UpdateSettingsInput {
+export interface SettingsInput {
   cart_name: string;
   tagline: string;
   is_open: boolean;
   estimated_wait_minutes: number;
   admin_pin: string;
+}
+
+export interface AdminAuthInput {
+  pin: string;
+}
+
+export interface AdminAuthResponse {
+  success: boolean;
 }

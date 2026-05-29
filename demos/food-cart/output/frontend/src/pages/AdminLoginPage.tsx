@@ -1,66 +1,67 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/design-tokens.css';
+import Header from '../components/Header';
+import { AdminAuthResponse } from '../types';
+import './design-tokens.css';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();
   const [pin, setPin] = useState('');
   const [error, setError] = useState('');
 
-  async function login() {
-    const res = await fetch('/api/settings/verify', {
+  const submit = async () => {
+    setError('');
+    const res = await fetch('/api/settings/verify-pin', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ admin_pin: pin }),
+      body: JSON.stringify({ pin }),
     });
-    const data = await res.json();
-    if (data.valid) {
-      navigate('/admin');
-    } else {
-      setError('Invalid PIN');
+    const data: AdminAuthResponse = await res.json();
+    if (data.success) {
+      localStorage.setItem('food-cart-admin', 'true');
+      navigate('/admin/orders');
+      return;
     }
-  }
+    setError('Invalid PIN.');
+  };
 
   return (
-    <div style={{ padding: 16, backgroundColor: 'var(--bg-page)', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ backgroundColor: 'var(--bg-card)', padding: 24, borderRadius: 8, boxShadow: 'var(--shadow-card)', minWidth: 300 }}>
-        <h1 style={{ color: 'var(--text-primary)', marginBottom: 16 }}>Admin Login</h1>
-        <input
-          value={pin}
-          onChange={(e) => setPin(e.target.value)}
-          placeholder="PIN"
-          type="password"
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') login();
-          }}
-          style={{
-            width: '100%',
-            padding: 8,
-            marginBottom: 12,
-            borderRadius: 4,
-            border: '1px solid var(--border-color)',
-            backgroundColor: 'var(--bg-input)',
-            color: 'var(--text-primary)',
-            boxSizing: 'border-box',
-          }}
-        />
-        <button
-          onClick={login}
-          style={{
-            width: '100%',
-            padding: 8,
-            borderRadius: 4,
-            border: 'none',
-            backgroundColor: 'var(--color-primary)',
-            color: 'var(--text-on-primary)',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-          }}
-        >
-          Enter
-        </button>
-        {error && <div style={{ color: 'var(--color-error)', marginTop: 12, textAlign: 'center' }}>{error}</div>}
-      </div>
+    <div>
+      <Header title="Food Cart" subtitle="Admin access" />
+      <main style={{ maxWidth: 'var(--max-width)', margin: '0 auto', padding: 'var(--space-4)' }}>
+        <div style={{ background: 'var(--bg-card)', borderRadius: 'var(--radius-lg)', padding: 'var(--space-5)' }}>
+          <h1 style={{ marginTop: 0 }}>Enter Admin PIN</h1>
+          <input
+            type="password"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            style={{
+              width: '100%',
+              padding: 'var(--space-3)',
+              borderRadius: 'var(--radius-md)',
+              border: `1px solid var(--border-color)`,
+              marginBottom: 'var(--space-3)',
+              boxSizing: 'border-box',
+            }}
+          />
+          {error ? <div style={{ color: 'var(--color-danger)', marginBottom: 'var(--space-3)' }}>{error}</div> : null}
+          <button
+            onClick={submit}
+            style={{
+              width: '100%',
+              background: 'var(--color-primary)',
+              color: 'var(--color-white)',
+              border: 'none',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--space-3)',
+              cursor: 'pointer',
+              fontWeight: 600,
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      </main>
     </div>
   );
 }
