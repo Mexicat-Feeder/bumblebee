@@ -12,10 +12,18 @@ export interface MenuItem {
   description: string;
   price: number;
   category_id: number;
-  category: string;
+  category_name: string;
   photo_url: string;
   available: boolean;
   sort_order: number;
+}
+
+export interface Settings {
+  cart_name: string;
+  tagline: string;
+  is_open: boolean;
+  estimated_wait_minutes: number;
+  admin_pin: string;
 }
 
 export interface OrderItem {
@@ -35,22 +43,20 @@ export interface Order {
   created_at: string;
   updated_at: string;
   items: OrderItem[];
-}
-
-export interface Settings {
-  cart_name: string;
-  tagline: string;
-  is_open: boolean;
-  estimated_wait_minutes: number;
-  admin_pin: string;
-}
-
-export interface CartLine {
-  item: MenuItem;
-  quantity: number;
+  total: number;
 }
 
 export interface CreateOrderItem {
   item_id: number;
+  quantity: number;
+}
+
+export interface CreateOrderRequest {
+  customer_name: string;
+  items: CreateOrderItem[];
+}
+
+export interface CartLine {
+  item: MenuItem;
   quantity: number;
 }
