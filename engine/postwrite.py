@@ -33,12 +33,32 @@ def strip_bom(file_path: str | Path) -> bool:
     return False
 
 
+def strip_css_imports(file_path: str | Path) -> bool:
+    """Strip CSS file imports from .tsx/.ts files. Returns True if any were removed."""
+    import re
+    p = Path(file_path)
+    if not p.exists() or p.suffix not in ('.tsx', '.ts'):
+        return False
+    try:
+        content = p.read_text(encoding='utf-8')
+        # Remove any import of .css files (design-tokens, component CSS, etc.)
+        cleaned = re.sub(r"import\s+['\"][^'\"]*\.css['\"];?\r?\n?", '', content)
+        if cleaned != content:
+            p.write_text(cleaned, encoding='utf-8')
+            return True
+    except Exception:
+        pass
+    return False
+
+
 def strip_boms_from_files(file_paths: list[str], deliverable_root: Path) -> int:
-    """Strip BOMs from a list of relative file paths. Returns count stripped."""
+    """Strip BOMs and CSS imports from a list of relative file paths. Returns count fixed."""
     count = 0
     for rel in file_paths:
         p = deliverable_root / rel
         if strip_bom(p):
+            count += 1
+        if strip_css_imports(p):
             count += 1
     return count
 

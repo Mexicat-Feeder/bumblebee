@@ -168,6 +168,7 @@ function createPipelineStore() {
         qaVerified,
         qaFailed: blocked,
         totalTickets: s.totalTickets || Object.values(stats).reduce((a: number, b: number) => a + b, 0),
+        createdTickets: s.createdTickets || Object.values(stats).reduce((a: number, b: number) => a + b, 0),
       }));
 
       // Auto-transition phases

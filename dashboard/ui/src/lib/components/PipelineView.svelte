@@ -232,8 +232,8 @@
       <h3 class="phase-title">Coding</h3>
       <div class="phase-metric">
         {#if codingActive || codingDone}
-          <span class="metric-big">{codingCount}</span>
-          <span class="metric-sub">remaining</span>
+          <span class="metric-big">{qaCount}<span class="metric-dim">/{state.totalTickets}</span></span>
+          <span class="metric-sub">verified</span>
         {:else}
           <span class="metric-big">--</span>
           <span class="metric-sub">waiting</span>
@@ -242,7 +242,7 @@
       <span class="cost-label">$0.00</span>
       {#if state.codingCurrentId}
         <div class="current-ticket">
-          <span class="current-label">Now:</span>
+          <span class="current-label">Building:</span>
           <span class="current-id">{state.codingCurrentId}</span>
         </div>
       {/if}
@@ -731,6 +731,12 @@
   .metric-sub {
     font-size: 0.75rem;
     color: var(--color-text-muted);
+  }
+
+  .metric-dim {
+    font-size: 0.65em;
+    color: var(--color-text-muted);
+    font-weight: 400;
   }
 
   .cost-label {
