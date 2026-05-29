@@ -190,6 +190,21 @@ def direct_dispatch(
         file_path = args.get("path", "")
         file_content = args.get("content", "")
 
+        # Fix double-escaped content from some models.
+        # Detect: content has literal backslash-n but no real newlines.
+        if "\n" not in file_content and "\\n" in file_content:
+            import re
+            file_content = (file_content
+                .replace("\\n", "\n")
+                .replace("\\t", "\t")
+                .replace('\\"', '"'))
+            # Fix unicode escapes like \uXXXX
+            file_content = re.sub(
+                r'\\u([0-9a-fA-F]{4})',
+                lambda m: chr(int(m.group(1), 16)),
+                file_content
+            )
+
         if not file_path or not file_content:
             continue
 

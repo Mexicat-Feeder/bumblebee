@@ -449,26 +449,24 @@ def commit_decomposition(slug: str):
         raise HTTPException(status_code=400, detail="Plan has no tickets to commit.")
 
     # Ensure project scaffold exists via new_project.py
+    # Always run scaffold to regenerate template files (reset clears output dir)
     from scripts.new_project import create_project as create_project_scaffold, NewProjectRequest
 
     config_path = _get_project_config_path(slug)
-    if not config_path.exists():
-        req = NewProjectRequest(
-            slug=slug,
-            display_name=project.get("name", slug),
-            deliverable_root=project.get("deliverable_root", f"./output/{slug}"),
-            tech_stack=project.get("tech_stack", ""),
-        )
-        scaffold_result = create_project_scaffold(
-            request=req,
-            engine_root=_BUMBLEBEE_ROOT / "engine",
-            workspace_root=_BUMBLEBEE_ROOT,
-        )
-        if not scaffold_result.success:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to create project scaffold: {scaffold_result.errors}",
-            )
+    req = NewProjectRequest(
+        slug=slug,
+        display_name=project.get("name", slug),
+        deliverable_root=project.get("deliverable_root", f"./output/{slug}"),
+        tech_stack=project.get("tech_stack", ""),
+    )
+    scaffold_result = create_project_scaffold(
+        request=req,
+        engine_root=_BUMBLEBEE_ROOT / "engine",
+        workspace_root=_BUMBLEBEE_ROOT,
+    )
+    if not scaffold_result.success:
+        log.warning("Scaffold creation had errors: %s", scaffold_result.errors)
+    if scaffold_result.config_path:
         config_path = Path(scaffold_result.config_path)
 
     # Write AI config into project-config.json
