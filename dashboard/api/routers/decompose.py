@@ -33,7 +33,7 @@ if str(_BUMBLEBEE_ROOT) not in sys.path:
     sys.path.insert(0, str(_BUMBLEBEE_ROOT))
 
 DEFAULT_LEMONADE_URL = "http://[::1]:13305"
-DEFAULT_CLOUD_MODEL = "gpt-4.1-mini"
+DEFAULT_CLOUD_MODEL = "gpt-5.4-mini"
 DEFAULT_CLOUD_BASE_URL = "https://api.openai.com/v1"
 
 
@@ -133,11 +133,13 @@ def _make_llm_fn(base_url: str, model_id: str, api_key: str):
             {"role": "user", "content": user_prompt},
         ]
 
+        # GPT-5.x uses max_completion_tokens; older models use max_tokens
+        token_key = "max_completion_tokens" if model_id.startswith("gpt-5") else "max_tokens"
         payload = {
             "model": model_id,
             "messages": messages,
-            "temperature": 0.3,  # Lower temp for structured output
-            "max_tokens": 32000,
+            "temperature": 0.3,
+            token_key: 32000,
         }
 
         # Synchronous call (decompose.py expects sync llm_fn)
@@ -161,6 +163,7 @@ def _make_streaming_llm(base_url: str, model_id: str, api_key: str):
         if api_key:
             headers["Authorization"] = f"Bearer {api_key}"
 
+        token_key = "max_completion_tokens" if model_id.startswith("gpt-5") else "max_tokens"
         payload = {
             "model": model_id,
             "messages": [
@@ -168,7 +171,7 @@ def _make_streaming_llm(base_url: str, model_id: str, api_key: str):
                 {"role": "user", "content": user_prompt},
             ],
             "temperature": 0.3,
-            "max_tokens": 32000,
+            token_key: 32000,
             "stream": True,
         }
 

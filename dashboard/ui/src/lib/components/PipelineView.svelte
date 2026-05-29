@@ -57,7 +57,6 @@
   async function doReset() {
     if (!resetConfirm) { resetConfirm = true; return; }
     resetting = true;
-    resetConfirm = false;
     try {
       const resp = await fetch('/api/reset', { method: 'POST' });
       if (resp.ok) {
@@ -67,6 +66,7 @@
       }
     } catch { /* ignore */ }
     resetting = false;
+    resetConfirm = false;
   }
 
   function cancelReset() { resetConfirm = false; }
@@ -129,10 +129,15 @@
     <div class="header-left">
       <span class="header-label">BUILD PIPELINE</span>
       <span class="header-project">{projectName}</span>
-      {#if resetConfirm}
+      {#if resetting}
+        <button class="reset-btn" disabled>
+          <span class="spinner-inline"></span>
+          Resetting...
+        </button>
+      {:else if resetConfirm}
         <div class="reset-confirm">
           <span class="reset-warn">Clear all tickets & research?</span>
-          <button class="reset-yes" on:click={doReset} disabled={resetting}>{resetting ? 'Resetting...' : 'Yes, reset'}</button>
+          <button class="reset-yes" on:click={doReset}>Yes, reset</button>
           <button class="reset-no" on:click={cancelReset}>Cancel</button>
         </div>
       {:else}
@@ -494,6 +499,22 @@
   }
 
   .reset-yes:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .spinner-inline {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid rgba(255,80,80,0.3);
+    border-top-color: #FF6B6B;
+    border-radius: 50%;
+    animation: spin-inline 0.6s linear infinite;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin-inline {
+    to { transform: rotate(360deg); }
+  }
 
   .reset-no {
     padding: 3px 10px;
