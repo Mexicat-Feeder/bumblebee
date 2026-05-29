@@ -33,7 +33,7 @@ if str(_BUMBLEBEE_ROOT) not in sys.path:
     sys.path.insert(0, str(_BUMBLEBEE_ROOT))
 
 DEFAULT_LEMONADE_URL = "http://[::1]:13305"
-DEFAULT_CLOUD_MODEL = "gpt-5.4-mini"
+DEFAULT_CLOUD_MODEL = "gpt-5.4"
 DEFAULT_CLOUD_BASE_URL = "https://api.openai.com/v1"
 
 

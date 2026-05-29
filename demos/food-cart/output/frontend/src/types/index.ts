@@ -9,87 +9,46 @@ export interface MenuItem {
   name: string;
   description: string;
   price: number;
-  category_id: number;
-  category_name: string;
-  photo_url: string | null;
-  is_available: boolean;
+  category: string;
+  photo_url: string;
+  available: boolean;
   sort_order: number;
+}
+
+export interface Settings {
+  cart_name: string;
+  tagline: string;
+  is_open: boolean;
+  estimated_wait_minutes: number;
+  admin_pin: string;
 }
 
 export interface OrderItem {
   id: number;
   order_id: number;
-  menu_item_id: number;
-  menu_item_name: string;
+  item_id: number;
+  item_name: string;
+  item_price: number;
   quantity: number;
-  unit_price: number;
-  line_total: number;
 }
 
 export interface Order {
   id: number;
   order_number: string;
-  customer_name: string | null;
-  customer_phone: string | null;
+  customer_name: string;
   status: string;
-  subtotal: number;
   created_at: string;
   updated_at: string;
-  items: OrderItem[];
-}
-
-export interface CartSettings {
-  id: number;
-  cart_name: string;
-  opening_time: string;
-  closing_time: string;
-  admin_pin: string;
-}
-
-export interface DailySummary {
-  date: string;
-  order_count: number;
-  total_sales: number;
-}
-
-export interface CreateCategoryInput {
-  name: string;
-  sort_order: number;
-}
-
-export interface UpdateCategoryInput {
-  name: string;
-  sort_order: number;
-}
-
-export interface CreateMenuItemInput {
-  name: string;
-  description: string;
-  price: number;
-  category_id: number;
-  photo_url: string | null;
-  is_available: boolean;
-  sort_order: number;
-}
-
-export interface UpdateMenuItemInput {
-  name: string;
-  description: string;
-  price: number;
-  category_id: number;
-  photo_url: string | null;
-  is_available: boolean;
-  sort_order: number;
+  items?: OrderItem[];
 }
 
 export interface CreateOrderItemInput {
-  menu_item_id: number;
+  item_id: number;
   quantity: number;
 }
 
 export interface CreateOrderInput {
-  customer_name: string | null;
-  customer_phone: string | null;
+  customer_name: string;
   items: CreateOrderItemInput[];
 }
 
@@ -97,9 +56,20 @@ export interface UpdateOrderStatusInput {
   status: string;
 }
 
+export interface UpsertMenuItemInput {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  photo_url: string;
+  available: boolean;
+  sort_order: number;
+}
+
 export interface UpdateSettingsInput {
   cart_name: string;
-  opening_time: string;
-  closing_time: string;
+  tagline: string;
+  is_open: boolean;
+  estimated_wait_minutes: number;
   admin_pin: string;
 }
