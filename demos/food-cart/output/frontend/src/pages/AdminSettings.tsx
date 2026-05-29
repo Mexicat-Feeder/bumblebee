@@ -10,17 +10,10 @@ import { useNavigate } from 'react-router-dom';
 import '../styles/design-tokens.css';
 
 interface SettingsData {
-  cartName: string;
-  openTime: string;
-  closeTime: string;
-  hasAdminPin: boolean;
-}
-
-interface ApiSettingsResponse {
   cart_name: string;
-  open_time: string;
-  close_time: string;
-  has_admin_pin: boolean;
+  opening_time: string;
+  closing_time: string;
+  admin_pin: string;
 }
 
 export default function AdminSettings() {
@@ -30,7 +23,6 @@ export default function AdminSettings() {
   const [openTime, setOpenTime] = useState('09:00');
   const [closeTime, setCloseTime] = useState('21:00');
   const [adminPin, setAdminPin] = useState('');
-  const [hasAdminPin, setHasAdminPin] = useState(false);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,21 +35,15 @@ export default function AdminSettings() {
   useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/api/settings', {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-        });
-
+        const response = await fetch('/api/settings');
         if (!response.ok) {
           throw new Error('Failed to load settings');
         }
-
-        const data: ApiSettingsResponse = await response.json();
-
+        const data: SettingsData = await response.json();
         setCartName(data.cart_name);
-        setOpenTime(data.open_time);
-        setCloseTime(data.close_time);
-        setHasAdminPin(data.has_admin_pin);
+        setOpenTime(data.opening_time);
+        setCloseTime(data.closing_time);
+        setAdminPin(data.admin_pin);
       } catch {
         setSaveMessage({
           type: 'error',
@@ -87,31 +73,19 @@ export default function AdminSettings() {
     setSaveMessage(null);
 
     try {
-      // Update cart name
-      await fetch('/api/settings/cart-name', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cart_name: cartName }),
-      });
-
-      // Update operating hours
-      await fetch('/api/settings/operating-hours', {
+      const response = await fetch('/api/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          open_time: openTime,
-          close_time: closeTime,
+          cart_name: cartName,
+          opening_time: openTime,
+          closing_time: closeTime,
+          admin_pin: adminPin,
         }),
       });
 
-      // Update admin PIN (only if provided)
-      if (adminPin.length > 0) {
-        await fetch('/api/settings/admin-pin', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ admin_pin: adminPin }),
-        });
-        setHasAdminPin(true);
+      if (!response.ok) {
+        throw new Error('Failed to save settings');
       }
 
       setSaveMessage({
@@ -201,7 +175,7 @@ export default function AdminSettings() {
               fontWeight: '500',
             }}
           >
-            ← Back
+             Back
           </button>
         </header>
 
@@ -384,7 +358,7 @@ export default function AdminSettings() {
               type="password"
               value={adminPin}
               onChange={(e) => setAdminPin(e.target.value)}
-              placeholder={hasAdminPin ? 'Enter new PIN (leave blank to keep current)' : 'Set admin PIN'}
+              placeholder={adminPin ? 'Enter new PIN (leave blank to keep current)' : 'Set admin PIN'}
               minLength={4}
               maxLength={20}
               style={{
@@ -404,7 +378,7 @@ export default function AdminSettings() {
               color: 'var(--text-secondary)',
               margin: '0.5rem 0 0 0',
             }}>
-              {hasAdminPin
+              {adminPin
                 ? 'A PIN is already set. Enter a new one to change it, or leave blank to keep the current PIN.'
                 : 'Set a PIN of at least 4 characters to protect admin access.'}
             </p>

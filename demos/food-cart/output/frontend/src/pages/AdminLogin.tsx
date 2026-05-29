@@ -36,7 +36,7 @@ export default function AdminLogin({ onLoginSuccess, onLoginError }: AdminLoginP
     setErrorMessage('');
 
     try {
-      const response = await fetch('/api/settings/admin-pin', {
+      const response = await fetch('/api/settings/verify', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,6 +50,15 @@ export default function AdminLogin({ onLoginSuccess, onLoginError }: AdminLoginP
         setErrorMessage(message);
         if (onLoginError) {
           onLoginError(message);
+        }
+        return;
+      }
+
+      const data = await response.json();
+      if (!data.valid) {
+        setErrorMessage('Invalid PIN. Please try again.');
+        if (onLoginError) {
+          onLoginError('Invalid PIN. Please try again.');
         }
         return;
       }

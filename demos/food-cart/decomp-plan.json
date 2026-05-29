@@ -1,13 +1,13 @@
 {
-  "gate_count": 4,
-  "total_tickets": 23,
+  "gate_count": 3,
+  "total_tickets": 14,
   "parent_count": 0,
   "child_count": 0,
   "tickets": [
     {
       "id": "FOODCART-P0-001",
       "gate": 0,
-      "description": "## Objective\nCreate the frontend package manifest with all React, Vite, TypeScript, routing, and type dependencies needed for the app.\n\n## Files to write\n\n### frontend/package.json\n```json\n{\n  \"name\": \"food-cart-frontend\",\n  \"private\": true,\n  \"version\": \"0.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.3.1\",\n    \"react-dom\": \"^18.3.1\",\n    \"react-router-dom\": \"^6.26.2\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^18.3.3\",\n    \"@types/react-dom\": \"^18.3.0\",\n    \"@vitejs/plugin-react\": \"^4.3.1\",\n    \"typescript\": \"^5.5.4\",\n    \"vite\": \"^5.4.2\"\n  }\n}\n```",
+      "description": "## Objective\nCreate the frontend package manifest with all React, Vite, TypeScript, router, and Tailwind dependencies needed for the app.\n\n## Files to write\n\n### frontend/package.json\n```json\n{\n  \"name\": \"food-cart-frontend\",\n  \"private\": true,\n  \"version\": \"1.0.0\",\n  \"type\": \"module\",\n  \"scripts\": {\n    \"dev\": \"vite\",\n    \"build\": \"tsc -b && vite build\",\n    \"preview\": \"vite preview\"\n  },\n  \"dependencies\": {\n    \"react\": \"^18.3.1\",\n    \"react-dom\": \"^18.3.1\",\n    \"react-router-dom\": \"^6.26.2\"\n  },\n  \"devDependencies\": {\n    \"@types/react\": \"^18.3.3\",\n    \"@types/react-dom\": \"^18.3.0\",\n    \"@vitejs/plugin-react\": \"^4.3.1\",\n    \"autoprefixer\": \"^10.4.20\",\n    \"postcss\": \"^8.4.41\",\n    \"tailwindcss\": \"^3.4.10\",\n    \"typescript\": \"^5.5.4\",\n    \"vite\": \"^5.4.2\"\n  }\n}\n```",
       "required_output_files": [
         "frontend/package.json"
       ],
@@ -15,11 +15,11 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use exactly the package.json content provided."
+        "Use exact dependency versions and scripts shown."
       ],
       "context_files": [],
-      "worker_done_criteria": "frontend/package.json exists and is valid JSON with the listed dependencies.",
-      "qa_done_criteria": "Run npm install and verify package.json parses.",
+      "worker_done_criteria": "frontend/package.json exists and is valid JSON",
+      "qa_done_criteria": "npm can read the package manifest without parse errors",
       "qa_cmd": [
         "cd frontend && node -e \"const p=require('./package.json'); console.log(p.name)\""
       ],
@@ -29,7 +29,7 @@
     {
       "id": "FOODCART-P0-002",
       "gate": 0,
-      "description": "## Objective\nCreate the Vite configuration with a proxy from /api to the backend on port 8000.\n\n## Files to write\n\n### frontend/vite.config.ts\n```ts\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    host: '0.0.0.0',\n    port: 5173,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true\n      }\n    }\n  }\n});\n```",
+      "description": "## Objective\nCreate the Vite config with a dev proxy from /api to the FastAPI backend on port 8000.\n\n## Files to write\n\n### frontend/vite.config.ts\n```ts\nimport { defineConfig } from 'vite';\nimport react from '@vitejs/plugin-react';\n\nexport default defineConfig({\n  plugins: [react()],\n  server: {\n    port: 5173,\n    proxy: {\n      '/api': {\n        target: 'http://localhost:8000',\n        changeOrigin: true\n      }\n    }\n  }\n});\n```",
       "required_output_files": [
         "frontend/vite.config.ts"
       ],
@@ -39,15 +39,13 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use exactly the proxy config shown."
+        "Proxy /api to http://localhost:8000 exactly."
       ],
-      "context_files": [
-        "frontend/package.json"
-      ],
-      "worker_done_criteria": "frontend/vite.config.ts exists and exports a Vite config.",
-      "qa_done_criteria": "Import the config with Vite/ts-node style check.",
+      "context_files": [],
+      "worker_done_criteria": "frontend/vite.config.ts exists and exports a Vite config",
+      "qa_done_criteria": "TypeScript can import the config file",
       "qa_cmd": [
-        "cd frontend && node --input-type=module -e \"import('./vite.config.ts').then(()=>console.log('ok'))\""
+        "cd frontend && node -e \"import('./vite.config.ts').then(()=>console.log('ok'))\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -55,7 +53,7 @@
     {
       "id": "FOODCART-P0-003",
       "gate": 0,
-      "description": "## Objective\nCreate the frontend TypeScript configuration for a React 18 + Vite app.\n\n## Files to write\n\n### frontend/tsconfig.json\n```json\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n    \"allowJs\": false,\n    \"skipLibCheck\": true,\n    \"esModuleInterop\": true,\n    \"allowSyntheticDefaultImports\": true,\n    \"strict\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"Node\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\"\n  },\n  \"include\": [\"src\"],\n  \"references\": []\n}\n```",
+      "description": "## Objective\nCreate the frontend TypeScript config for a React 18 + Vite app.\n\n## Files to write\n\n### frontend/tsconfig.json\n```json\n{\n  \"compilerOptions\": {\n    \"target\": \"ES2020\",\n    \"useDefineForClassFields\": true,\n    \"lib\": [\"ES2020\", \"DOM\", \"DOM.Iterable\"],\n    \"allowJs\": false,\n    \"skipLibCheck\": true,\n    \"esModuleInterop\": true,\n    \"allowSyntheticDefaultImports\": true,\n    \"strict\": true,\n    \"forceConsistentCasingInFileNames\": true,\n    \"module\": \"ESNext\",\n    \"moduleResolution\": \"Node\",\n    \"resolveJsonModule\": true,\n    \"isolatedModules\": true,\n    \"noEmit\": true,\n    \"jsx\": \"react-jsx\"\n  },\n  \"include\": [\"src\"],\n  \"references\": []\n}\n```",
       "required_output_files": [
         "frontend/tsconfig.json"
       ],
@@ -65,13 +63,11 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use exactly the tsconfig content shown."
+        "Use strict TypeScript settings and react-jsx."
       ],
-      "context_files": [
-        "frontend/package.json"
-      ],
-      "worker_done_criteria": "frontend/tsconfig.json exists and is valid JSON.",
-      "qa_done_criteria": "TypeScript config parses successfully.",
+      "context_files": [],
+      "worker_done_criteria": "frontend/tsconfig.json exists",
+      "qa_done_criteria": "tsconfig parses as JSON",
       "qa_cmd": [
         "cd frontend && node -e \"const p=require('./tsconfig.json'); console.log(p.compilerOptions.jsx)\""
       ],
@@ -81,7 +77,7 @@
     {
       "id": "FOODCART-P0-004",
       "gate": 0,
-      "description": "## Objective\nCreate the frontend HTML entrypoint for the Vite app.\n\n## Files to write\n\n### frontend/index.html\n```html\n<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Food Cart</title>\n    <meta name=\"description\" content=\"Pop-up food cart ordering app\" />\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\n  </body>\n</html>\n```",
+      "description": "## Objective\nCreate the frontend HTML entry file for Vite.\n\n## Files to write\n\n### frontend/index.html\n```html\n<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>Food Cart Ordering</title>\n  </head>\n  <body>\n    <div id=\"root\"></div>\n    <script type=\"module\" src=\"/src/main.tsx\"></script>\n  </body>\n</html>\n```",
       "required_output_files": [
         "frontend/index.html"
       ],
@@ -91,15 +87,13 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use exactly the HTML shown."
+        "Use /src/main.tsx as the module entry."
       ],
-      "context_files": [
-        "frontend/package.json"
-      ],
-      "worker_done_criteria": "frontend/index.html exists and contains the root div and module script.",
-      "qa_done_criteria": "HTML file is present and references /src/main.tsx.",
+      "context_files": [],
+      "worker_done_criteria": "frontend/index.html exists",
+      "qa_done_criteria": "HTML file contains root div and module script",
       "qa_cmd": [
-        "cd frontend && grep -n \"src/main.tsx\" index.html"
+        "cd frontend && grep -q '<div id=\"root\"></div>' index.html && echo ok"
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -118,16 +112,13 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use exactly the ReactDOM.createRoot pattern shown."
+        "Import App from ./App and render into #root."
       ],
-      "context_files": [
-        "frontend/index.html",
-        "frontend/package.json"
-      ],
-      "worker_done_criteria": "frontend/src/main.tsx exists and imports App.",
-      "qa_done_criteria": "TypeScript can resolve the entrypoint imports.",
+      "context_files": [],
+      "worker_done_criteria": "frontend/src/main.tsx exists and imports App",
+      "qa_done_criteria": "TypeScript can resolve the entrypoint",
       "qa_cmd": [
-        "cd frontend && node -e \"console.log('main ok')\""
+        "cd frontend && node -e \"import('./src/main.tsx').then(()=>console.log('ok'))\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -135,7 +126,7 @@
     {
       "id": "FOODCART-P0-006",
       "gate": 0,
-      "description": "## Objective\nCreate the shared frontend TypeScript interfaces that match the backend Pydantic models field-for-field.\n\n## Files to write\n\n### frontend/src/types/index.ts\n```ts\nexport interface Category {\n  id: number;\n  name: string;\n  sort_order: number;\n}\n\nexport interface MenuItem {\n  id: number;\n  name: string;\n  description: string;\n  price: number;\n  category_id: number;\n  category_name: string;\n  photo_url: string | null;\n  is_available: boolean;\n  sort_order: number;\n}\n\nexport interface OrderItem {\n  id: number;\n  order_id: number;\n  menu_item_id: number;\n  menu_item_name: string;\n  quantity: number;\n  unit_price: number;\n  line_total: number;\n}\n\nexport interface Order {\n  id: number;\n  order_number: string;\n  customer_name: string | null;\n  customer_phone: string | null;\n  status: string;\n  subtotal: number;\n  created_at: string;\n  updated_at: string;\n  items: OrderItem[];\n}\n\nexport interface CartSettings {\n  id: number;\n  cart_name: string;\n  opening_time: string;\n  closing_time: string;\n  admin_pin: string;\n}\n\nexport interface DailySummary {\n  date: string;\n  order_count: number;\n  total_sales: number;\n}\n\nexport interface CreateCategoryInput {\n  name: string;\n  sort_order: number;\n}\n\nexport interface UpdateCategoryInput {\n  name: string;\n  sort_order: number;\n}\n\nexport interface CreateMenuItemInput {\n  name: string;\n  description: string;\n  price: number;\n  category_id: number;\n  photo_url: string | null;\n  is_available: boolean;\n  sort_order: number;\n}\n\nexport interface UpdateMenuItemInput {\n  name: string;\n  description: string;\n  price: number;\n  category_id: number;\n  photo_url: string | null;\n  is_available: boolean;\n  sort_order: number;\n}\n\nexport interface CreateOrderItemInput {\n  menu_item_id: number;\n  quantity: number;\n}\n\nexport interface CreateOrderInput {\n  customer_name: string | null;\n  customer_phone: string | null;\n  items: CreateOrderItemInput[];\n}\n\nexport interface UpdateOrderStatusInput {\n  status: string;\n}\n\nexport interface UpdateSettingsInput {\n  cart_name: string;\n  opening_time: string;\n  closing_time: string;\n  admin_pin: string;\n}\n```",
+      "description": "## Objective\nCreate the shared frontend TypeScript interfaces that match the backend Pydantic models field-for-field.\n\n## Files to write\n\n### frontend/src/types/index.ts\n```ts\nexport interface Category {\n  id: number;\n  name: string;\n  sort_order: number;\n}\n\nexport interface MenuItem {\n  id: number;\n  name: string;\n  description: string;\n  price: number;\n  category: string;\n  photo_url: string;\n  available: boolean;\n  sort_order: number;\n}\n\nexport interface Settings {\n  cart_name: string;\n  tagline: string;\n  is_open: boolean;\n  estimated_wait_minutes: number;\n  admin_pin: string;\n}\n\nexport interface OrderItem {\n  id: number;\n  order_id: number;\n  item_id: number;\n  item_name: string;\n  item_price: number;\n  quantity: number;\n}\n\nexport interface Order {\n  id: number;\n  order_number: string;\n  customer_name: string;\n  status: string;\n  created_at: string;\n  updated_at: string;\n  items?: OrderItem[];\n}\n\nexport interface CreateOrderItemInput {\n  item_id: number;\n  quantity: number;\n}\n\nexport interface CreateOrderInput {\n  customer_name: string;\n  items: CreateOrderItemInput[];\n}\n\nexport interface UpdateOrderStatusInput {\n  status: string;\n}\n\nexport interface UpsertMenuItemInput {\n  name: string;\n  description: string;\n  price: number;\n  category: string;\n  photo_url: string;\n  available: boolean;\n  sort_order: number;\n}\n\nexport interface UpdateSettingsInput {\n  cart_name: string;\n  tagline: string;\n  is_open: boolean;\n  estimated_wait_minutes: number;\n  admin_pin: string;\n}\n```",
       "required_output_files": [
         "frontend/src/types/index.ts"
       ],
@@ -145,15 +136,13 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "All interfaces must match backend schemas exactly."
+        "Interfaces must match backend schemas exactly, including field names and types."
       ],
-      "context_files": [
-        "frontend/package.json"
-      ],
-      "worker_done_criteria": "frontend/src/types/index.ts exports all shared interfaces.",
-      "qa_done_criteria": "TypeScript import check passes.",
+      "context_files": [],
+      "worker_done_criteria": "types file exports all shared interfaces",
+      "qa_done_criteria": "TypeScript import check passes",
       "qa_cmd": [
-        "cd frontend && node -e \"const fs=require('fs'); console.log(fs.readFileSync('src/types/index.ts','utf8').includes('export interface Order'))\""
+        "cd frontend && node -e \"import('./src/types/index.ts').then(m=>console.log(Object.keys(m).length))\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -161,7 +150,7 @@
     {
       "id": "FOODCART-P0-007",
       "gate": 0,
-      "description": "## Objective\nCreate the backend Pydantic schemas that match the frontend shared TypeScript interfaces field-for-field.\n\n## Files to write\n\n### backend/schemas.py\n```py\nfrom pydantic import BaseModel\nfrom typing import List, Optional\n\nclass CategoryBase(BaseModel):\n    name: str\n    sort_order: int\n\nclass Category(CategoryBase):\n    id: int\n\nclass MenuItemBase(BaseModel):\n    name: str\n    description: str\n    price: float\n    category_id: int\n    photo_url: Optional[str] = None\n    is_available: bool\n    sort_order: int\n\nclass MenuItem(MenuItemBase):\n    id: int\n    category_name: str\n\nclass OrderItemBase(BaseModel):\n    menu_item_id: int\n    quantity: int\n\nclass OrderItem(OrderItemBase):\n    id: int\n    order_id: int\n    menu_item_name: str\n    unit_price: float\n    line_total: float\n\nclass OrderBase(BaseModel):\n    customer_name: Optional[str] = None\n    customer_phone: Optional[str] = None\n\nclass CreateOrderRequest(OrderBase):\n    items: List[OrderItemBase]\n\nclass Order(OrderBase):\n    id: int\n    order_number: str\n    status: str\n    subtotal: float\n    created_at: str\n    updated_at: str\n    items: List[OrderItem]\n\nclass Settings(BaseModel):\n    id: int\n    cart_name: str\n    opening_time: str\n    closing_time: str\n    admin_pin: str\n\nclass SettingsUpdate(BaseModel):\n    cart_name: str\n    opening_time: str\n    closing_time: str\n    admin_pin: str\n\nclass StatusUpdate(BaseModel):\n    status: str\n\nclass DailySummary(BaseModel):\n    date: str\n    order_count: int\n    total_sales: float\n```",
+      "description": "## Objective\nCreate the backend Pydantic schemas that match the frontend shared types field-for-field.\n\n## Files to write\n\n### backend/schemas.py\n```py\nfrom typing import List, Optional\nfrom pydantic import BaseModel\n\n\nclass Category(BaseModel):\n    id: int\n    name: str\n    sort_order: int\n\n\nclass MenuItem(BaseModel):\n    id: int\n    name: str\n    description: str\n    price: int\n    category: str\n    photo_url: str\n    available: bool\n    sort_order: int\n\n\nclass Settings(BaseModel):\n    cart_name: str\n    tagline: str\n    is_open: bool\n    estimated_wait_minutes: int\n    admin_pin: str\n\n\nclass OrderItem(BaseModel):\n    id: int\n    order_id: int\n    item_id: int\n    item_name: str\n    item_price: int\n    quantity: int\n\n\nclass Order(BaseModel):\n    id: int\n    order_number: str\n    customer_name: str\n    status: str\n    created_at: str\n    updated_at: str\n    items: Optional[List[OrderItem]] = None\n\n\nclass CreateOrderItemInput(BaseModel):\n    item_id: int\n    quantity: int\n\n\nclass CreateOrderInput(BaseModel):\n    customer_name: str\n    items: List[CreateOrderItemInput]\n\n\nclass UpdateOrderStatusInput(BaseModel):\n    status: str\n\n\nclass UpsertMenuItemInput(BaseModel):\n    name: str\n    description: str\n    price: int\n    category: str\n    photo_url: str\n    available: bool\n    sort_order: int\n\n\nclass UpdateSettingsInput(BaseModel):\n    cart_name: str\n    tagline: str\n    is_open: bool\n    estimated_wait_minutes: int\n    admin_pin: str\n```",
       "required_output_files": [
         "backend/schemas.py"
       ],
@@ -169,15 +158,15 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Match the frontend interfaces exactly in field names and types."
+        "Match the frontend interfaces exactly."
       ],
       "context_files": [
         "frontend/src/types/index.ts"
       ],
-      "worker_done_criteria": "backend/schemas.py exists and defines all models.",
-      "qa_done_criteria": "Python can import backend.schemas without errors.",
+      "worker_done_criteria": "backend/schemas.py exists and imports cleanly",
+      "qa_done_criteria": "Python can import all schema classes",
       "qa_cmd": [
-        "cd backend && python -c \"import schemas; print('ok')\""
+        "cd backend && python -c \"from schemas import Category, MenuItem, Settings, Order, OrderItem; print('ok')\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -185,7 +174,7 @@
     {
       "id": "FOODCART-P0-008",
       "gate": 0,
-      "description": "## Objective\nCreate the SQLite database helper and schema initialization with seed-ready tables for categories, menu items, orders, order items, and settings.\n\n## Files to write\n\n### backend/database.py\n```py\nimport os\nimport sqlite3\nfrom pathlib import Path\n\nBASE_DIR = Path(__file__).resolve().parent\nDB_PATH = BASE_DIR / 'food_cart.db'\nUPLOAD_DIR = BASE_DIR / 'uploads'\n\nSCHEMA_SQL = \"\"\"\nPRAGMA foreign_keys = ON;\nCREATE TABLE IF NOT EXISTS categories (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL UNIQUE,\n  sort_order INTEGER NOT NULL DEFAULT 0\n);\nCREATE TABLE IF NOT EXISTS menu_items (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  description TEXT NOT NULL DEFAULT '',\n  price REAL NOT NULL,\n  category_id INTEGER NOT NULL,\n  photo_url TEXT,\n  is_available INTEGER NOT NULL DEFAULT 1,\n  sort_order INTEGER NOT NULL DEFAULT 0,\n  FOREIGN KEY(category_id) REFERENCES categories(id) ON DELETE CASCADE\n);\nCREATE TABLE IF NOT EXISTS orders (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  order_number TEXT NOT NULL UNIQUE,\n  customer_name TEXT,\n  customer_phone TEXT,\n  status TEXT NOT NULL,\n  subtotal REAL NOT NULL,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n);\nCREATE TABLE IF NOT EXISTS order_items (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  order_id INTEGER NOT NULL,\n  menu_item_id INTEGER NOT NULL,\n  menu_item_name TEXT NOT NULL,\n  quantity INTEGER NOT NULL,\n  unit_price REAL NOT NULL,\n  line_total REAL NOT NULL,\n  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE,\n  FOREIGN KEY(menu_item_id) REFERENCES menu_items(id)\n);\nCREATE TABLE IF NOT EXISTS settings (\n  id INTEGER PRIMARY KEY CHECK (id = 1),\n  cart_name TEXT NOT NULL,\n  opening_time TEXT NOT NULL,\n  closing_time TEXT NOT NULL,\n  admin_pin TEXT NOT NULL\n);\n\"\"\"\n\n\ndef get_db() -> sqlite3.Connection:\n    conn = sqlite3.connect(DB_PATH)\n    conn.row_factory = sqlite3.Row\n    conn.execute('PRAGMA foreign_keys = ON;')\n    return conn\n\n\ndef init_db() -> None:\n    os.makedirs(UPLOAD_DIR, exist_ok=True)\n    conn = get_db()\n    conn.executescript(SCHEMA_SQL)\n    conn.commit()\n    conn.close()\n```",
+      "description": "## Objective\nCreate the backend SQLite database helper and schema initialization SQL.\n\n## Files to write\n\n### backend/database.py\n```py\nimport os\nimport sqlite3\nfrom pathlib import Path\n\nBASE_DIR = Path(__file__).resolve().parent\nDB_PATH = BASE_DIR / 'food_cart.db'\nUPLOAD_DIR = BASE_DIR / 'uploads'\n\nSCHEMA_SQL = \"\"\"\nPRAGMA foreign_keys = ON;\n\nCREATE TABLE IF NOT EXISTS categories (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL UNIQUE,\n  sort_order INTEGER NOT NULL DEFAULT 0\n);\n\nCREATE TABLE IF NOT EXISTS menu_items (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  name TEXT NOT NULL,\n  description TEXT NOT NULL,\n  price INTEGER NOT NULL,\n  category TEXT NOT NULL,\n  photo_url TEXT NOT NULL,\n  available INTEGER NOT NULL DEFAULT 1,\n  sort_order INTEGER NOT NULL DEFAULT 0\n);\n\nCREATE TABLE IF NOT EXISTS settings (\n  id INTEGER PRIMARY KEY CHECK (id = 1),\n  cart_name TEXT NOT NULL,\n  tagline TEXT NOT NULL,\n  is_open INTEGER NOT NULL DEFAULT 1,\n  estimated_wait_minutes INTEGER NOT NULL DEFAULT 10,\n  admin_pin TEXT NOT NULL DEFAULT '1234'\n);\n\nCREATE TABLE IF NOT EXISTS orders (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  order_number TEXT NOT NULL UNIQUE,\n  customer_name TEXT NOT NULL,\n  status TEXT NOT NULL,\n  created_at TEXT NOT NULL,\n  updated_at TEXT NOT NULL\n);\n\nCREATE TABLE IF NOT EXISTS order_items (\n  id INTEGER PRIMARY KEY AUTOINCREMENT,\n  order_id INTEGER NOT NULL,\n  item_id INTEGER NOT NULL,\n  item_name TEXT NOT NULL,\n  item_price INTEGER NOT NULL,\n  quantity INTEGER NOT NULL,\n  FOREIGN KEY(order_id) REFERENCES orders(id) ON DELETE CASCADE\n);\n\"\"\"\n\n\ndef get_db() -> sqlite3.Connection:\n    conn = sqlite3.connect(DB_PATH)\n    conn.row_factory = sqlite3.Row\n    conn.execute('PRAGMA foreign_keys = ON;')\n    return conn\n\n\ndef init_db() -> None:\n    os.makedirs(UPLOAD_DIR, exist_ok=True)\n    conn = get_db()\n    try:\n        conn.executescript(SCHEMA_SQL)\n        conn.commit()\n    finally:\n        conn.close()\n```",
       "required_output_files": [
         "backend/database.py"
       ],
@@ -193,15 +182,15 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use sqlite3 only and row_factory = sqlite3.Row."
+        "Use sqlite3 only, row_factory=sqlite3.Row, and create uploads directory."
       ],
       "context_files": [
         "backend/schemas.py"
       ],
-      "worker_done_criteria": "backend/database.py exists and exposes get_db and init_db.",
-      "qa_done_criteria": "Python import check passes and init_db can be called.",
+      "worker_done_criteria": "database.py exports get_db and init_db",
+      "qa_done_criteria": "Python can import and call init_db",
       "qa_cmd": [
-        "cd backend && python -c \"import database; database.init_db(); print('ok')\""
+        "cd backend && python -c \"from database import init_db; init_db(); print('ok')\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -209,7 +198,7 @@
     {
       "id": "FOODCART-P0-009",
       "gate": 0,
-      "description": "## Objective\nCreate the backend seed script with initial categories, menu items, and settings data.\n\n## Files to write\n\n### backend/seed.py\n```py\nfrom database import get_db, init_db\n\nSEED_CATEGORIES = [\n    ('Mains', 1),\n    ('Sides', 2),\n    ('Drinks', 3),\n]\n\nSEED_MENU_ITEMS = [\n    ('Classic Burger', 'Beef patty with lettuce, tomato, and house sauce', 9.5, 1, None, 1, 1),\n    ('Loaded Fries', 'Fries topped with cheese and scallions', 5.0, 2, None, 1, 2),\n    ('Lemonade', 'Fresh squeezed lemonade', 3.5, 3, None, 1, 3),\n]\n\n\ndef seed() -> None:\n    init_db()\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('SELECT COUNT(*) AS count FROM categories')\n    if cur.fetchone()['count'] == 0:\n        cur.executemany('INSERT INTO categories (name, sort_order) VALUES (?, ?)', SEED_CATEGORIES)\n    cur.execute('SELECT COUNT(*) AS count FROM menu_items')\n    if cur.fetchone()['count'] == 0:\n        cur.executemany(\n            'INSERT INTO menu_items (name, description, price, category_id, photo_url, is_available, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',\n            SEED_MENU_ITEMS,\n        )\n    cur.execute('SELECT COUNT(*) AS count FROM settings')\n    if cur.fetchone()['count'] == 0:\n        cur.execute(\n            'INSERT INTO settings (id, cart_name, opening_time, closing_time, admin_pin) VALUES (1, ?, ?, ?, ?)',\n            ('Pop-Up Food Cart', '10:00', '18:00', '1234'),\n        )\n    conn.commit()\n    conn.close()\n\n\nif __name__ == '__main__':\n    seed()\n    print('seeded')\n```",
+      "description": "## Objective\nCreate backend seed data with categories, menu items, and default settings.\n\n## Files to write\n\n### backend/seed.py\n```py\nfrom database import get_db, init_db\n\nSEED_CATEGORIES = [\n    ('Burgers', 1),\n    ('Sides', 2),\n    ('Drinks', 3),\n]\n\nSEED_MENU_ITEMS = [\n    ('Classic Smash Burger', 'Two smashed beef patties, cheddar, pickles, house sauce.', 1299, 'Burgers', 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=80', 1, 1),\n    ('Spicy Chicken Sandwich', 'Crispy chicken, spicy mayo, slaw, brioche bun.', 1199, 'Burgers', 'https://images.unsplash.com/photo-1606755962773-d324e5c2c3f8?auto=format&fit=crop&w=800&q=80', 1, 2),\n    ('Loaded Fries', 'Fries topped with cheese sauce, scallions, and bacon.', 699, 'Sides', 'https://images.unsplash.com/photo-1573080496219-bb080dd4f877?auto=format&fit=crop&w=800&q=80', 1, 1),\n    ('Onion Rings', 'Crispy battered onion rings with ranch.', 599, 'Sides', 'https://images.unsplash.com/photo-1639024471283-03518883512d?auto=format&fit=crop&w=800&q=80', 1, 2),\n    ('Lemonade', 'Fresh squeezed lemonade, served cold.', 399, 'Drinks', 'https://images.unsplash.com/photo-1523677011781-c91d1bbe2f9e?auto=format&fit=crop&w=800&q=80', 1, 1),\n    ('Iced Tea', 'Unsweetened black tea over ice.', 299, 'Drinks', 'https://images.unsplash.com/photo-1499636136210-6f4ee915583e?auto=format&fit=crop&w=800&q=80', 1, 2),\n]\n\nDEFAULT_SETTINGS = ('Food Cart', 'Hot food, fast service.', 1, 12, '1234')\n\n\ndef seed() -> None:\n    init_db()\n    conn = get_db()\n    try:\n        conn.execute('DELETE FROM order_items')\n        conn.execute('DELETE FROM orders')\n        conn.execute('DELETE FROM menu_items')\n        conn.execute('DELETE FROM categories')\n        conn.execute('DELETE FROM settings')\n        conn.executemany('INSERT INTO categories (name, sort_order) VALUES (?, ?)', SEED_CATEGORIES)\n        conn.executemany(\n            'INSERT INTO menu_items (name, description, price, category, photo_url, available, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',\n            SEED_MENU_ITEMS,\n        )\n        conn.execute(\n            'INSERT INTO settings (id, cart_name, tagline, is_open, estimated_wait_minutes, admin_pin) VALUES (1, ?, ?, ?, ?, ?)',\n            DEFAULT_SETTINGS,\n        )\n        conn.commit()\n    finally:\n        conn.close()\n\n\nif __name__ == '__main__':\n    seed()\n    print('seeded')\n```",
       "required_output_files": [
         "backend/seed.py"
       ],
@@ -219,14 +208,14 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Seed categories, menu items, and settings exactly as shown."
+        "Seed at least 3 categories and 6 menu items with photo URLs and default settings."
       ],
       "context_files": [
         "backend/database.py",
         "backend/schemas.py"
       ],
-      "worker_done_criteria": "backend/seed.py exists and can populate the database.",
-      "qa_done_criteria": "Running the seed script completes successfully.",
+      "worker_done_criteria": "seed.py runs and populates the database",
+      "qa_done_criteria": "Python can execute seed.py without errors",
       "qa_cmd": [
         "cd backend && python seed.py"
       ],
@@ -236,9 +225,9 @@
     {
       "id": "FOODCART-P1-001",
       "gate": 1,
-      "description": "## Objective\nCreate the categories API router with full CRUD and ordering support.\n\n## Files to write\n\n### backend/routers/categories.py\n```py\nfrom fastapi import APIRouter, HTTPException\nfrom database import get_db\nfrom schemas import Category, CategoryBase\n\nrouter = APIRouter(prefix='/api/categories', tags=['categories'])\n\n@router.get('', response_model=list[Category])\ndef list_categories():\n    conn = get_db()\n    rows = conn.execute('SELECT id, name, sort_order FROM categories ORDER BY sort_order ASC, id ASC').fetchall()\n    conn.close()\n    return [dict(row) for row in rows]\n\n@router.post('', response_model=Category)\ndef create_category(payload: CategoryBase):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('INSERT INTO categories (name, sort_order) VALUES (?, ?)', (payload.name, payload.sort_order))\n    conn.commit()\n    row = cur.execute('SELECT id, name, sort_order FROM categories WHERE id = ?', (cur.lastrowid,)).fetchone()\n    conn.close()\n    return dict(row)\n\n@router.put('/{category_id}', response_model=Category)\ndef update_category(category_id: int, payload: CategoryBase):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('UPDATE categories SET name = ?, sort_order = ? WHERE id = ?', (payload.name, payload.sort_order, category_id))\n    if cur.rowcount == 0:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Category not found')\n    conn.commit()\n    row = cur.execute('SELECT id, name, sort_order FROM categories WHERE id = ?', (category_id,)).fetchone()\n    conn.close()\n    return dict(row)\n\n@router.delete('/{category_id}')\ndef delete_category(category_id: int):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('DELETE FROM categories WHERE id = ?', (category_id,))\n    if cur.rowcount == 0:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Category not found')\n    conn.commit()\n    conn.close()\n    return {'ok': True}\n```",
+      "description": "## Objective\nCreate the menu API router with endpoints for categories, all menu items, and a single menu item by id.\n\n## Files to write\n\n### backend/routers/menu.py\n```py\nfrom fastapi import APIRouter, HTTPException\nfrom database import get_db\n\nrouter = APIRouter(prefix='/api', tags=['menu'])\n\n\n@router.get('/categories')\ndef list_categories():\n    conn = get_db()\n    try:\n        rows = conn.execute('SELECT id, name, sort_order FROM categories ORDER BY sort_order, name').fetchall()\n        return [dict(row) for row in rows]\n    finally:\n        conn.close()\n\n\n@router.get('/menu')\ndef list_menu_items():\n    conn = get_db()\n    try:\n        rows = conn.execute(\n            'SELECT id, name, description, price, category, photo_url, available, sort_order FROM menu_items ORDER BY sort_order, name'\n        ).fetchall()\n        items = []\n        for row in rows:\n            item = dict(row)\n            item['available'] = bool(item['available'])\n            items.append(item)\n        return items\n    finally:\n        conn.close()\n\n\n@router.get('/menu/{item_id}')\ndef get_menu_item(item_id: int):\n    conn = get_db()\n    try:\n        row = conn.execute(\n            'SELECT id, name, description, price, category, photo_url, available, sort_order FROM menu_items WHERE id = ?',\n            (item_id,),\n        ).fetchone()\n        if row is None:\n            raise HTTPException(status_code=404, detail='Menu item not found')\n        item = dict(row)\n        item['available'] = bool(item['available'])\n        return item\n    finally:\n        conn.close()\n```",
       "required_output_files": [
-        "backend/routers/categories.py"
+        "backend/routers/menu.py"
       ],
       "depends_on": [
         "FOODCART-P0-007",
@@ -247,16 +236,16 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Return arrays or single objects directly, never wrapped in an envelope."
+        "Return arrays or single objects directly. Use exact SQL and 404 error text."
       ],
       "context_files": [
         "backend/database.py",
         "backend/schemas.py"
       ],
-      "worker_done_criteria": "backend/routers/categories.py exists and exports router.",
-      "qa_done_criteria": "Importing the router succeeds.",
+      "worker_done_criteria": "router file exports router and serves menu endpoints",
+      "qa_done_criteria": "Python can import router and list routes",
       "qa_cmd": [
-        "cd backend && python -c \"from routers.categories import router; print(router.prefix)\""
+        "cd backend && python -c \"from routers.menu import router; print([r.path for r in router.routes])\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -264,9 +253,9 @@
     {
       "id": "FOODCART-P1-002",
       "gate": 1,
-      "description": "## Objective\nCreate the menu items API router with CRUD, availability toggling, and photo URL support.\n\n## Files to write\n\n### backend/routers/menu_items.py\n```py\nfrom fastapi import APIRouter, HTTPException\nfrom database import get_db\nfrom schemas import MenuItem, MenuItemBase\n\nrouter = APIRouter(prefix='/api/menu-items', tags=['menu-items'])\n\n@router.get('', response_model=list[MenuItem])\ndef list_menu_items():\n    conn = get_db()\n    rows = conn.execute(\n        'SELECT m.id, m.name, m.description, m.price, m.category_id, c.name AS category_name, m.photo_url, m.is_available, m.sort_order FROM menu_items m JOIN categories c ON c.id = m.category_id ORDER BY c.sort_order ASC, m.sort_order ASC, m.id ASC'\n    ).fetchall()\n    conn.close()\n    return [dict(row) for row in rows]\n\n@router.post('', response_model=MenuItem)\ndef create_menu_item(payload: MenuItemBase):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute(\n        'INSERT INTO menu_items (name, description, price, category_id, photo_url, is_available, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)',\n        (payload.name, payload.description, payload.price, payload.category_id, payload.photo_url, int(payload.is_available), payload.sort_order),\n    )\n    conn.commit()\n    row = cur.execute('SELECT m.id, m.name, m.description, m.price, m.category_id, c.name AS category_name, m.photo_url, m.is_available, m.sort_order FROM menu_items m JOIN categories c ON c.id = m.category_id WHERE m.id = ?', (cur.lastrowid,)).fetchone()\n    conn.close()\n    return dict(row)\n\n@router.put('/{menu_item_id}', response_model=MenuItem)\ndef update_menu_item(menu_item_id: int, payload: MenuItemBase):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute(\n        'UPDATE menu_items SET name = ?, description = ?, price = ?, category_id = ?, photo_url = ?, is_available = ?, sort_order = ? WHERE id = ?',\n        (payload.name, payload.description, payload.price, payload.category_id, payload.photo_url, int(payload.is_available), payload.sort_order, menu_item_id),\n    )\n    if cur.rowcount == 0:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Menu item not found')\n    conn.commit()\n    row = cur.execute('SELECT m.id, m.name, m.description, m.price, m.category_id, c.name AS category_name, m.photo_url, m.is_available, m.sort_order FROM menu_items m JOIN categories c ON c.id = m.category_id WHERE m.id = ?', (menu_item_id,)).fetchone()\n    conn.close()\n    return dict(row)\n\n@router.patch('/{menu_item_id}/availability', response_model=MenuItem)\ndef toggle_menu_item_availability(menu_item_id: int):\n    conn = get_db()\n    cur = conn.cursor()\n    row = cur.execute('SELECT is_available FROM menu_items WHERE id = ?', (menu_item_id,)).fetchone()\n    if row is None:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Menu item not found')\n    new_value = 0 if row['is_available'] else 1\n    cur.execute('UPDATE menu_items SET is_available = ? WHERE id = ?', (new_value, menu_item_id))\n    conn.commit()\n    row = cur.execute('SELECT m.id, m.name, m.description, m.price, m.category_id, c.name AS category_name, m.photo_url, m.is_available, m.sort_order FROM menu_items m JOIN categories c ON c.id = m.category_id WHERE m.id = ?', (menu_item_id,)).fetchone()\n    conn.close()\n    return dict(row)\n\n@router.delete('/{menu_item_id}')\ndef delete_menu_item(menu_item_id: int):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('DELETE FROM menu_items WHERE id = ?', (menu_item_id,))\n    if cur.rowcount == 0:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Menu item not found')\n    conn.commit()\n    conn.close()\n    return {'ok': True}\n```",
+      "description": "## Objective\nCreate the orders API router for creating orders, fetching an order, and updating order status.\n\n## Files to write\n\n### backend/routers/orders.py\n```py\nfrom datetime import datetime\nfrom fastapi import APIRouter, HTTPException\nfrom database import get_db\nfrom schemas import CreateOrderInput, UpdateOrderStatusInput\n\nrouter = APIRouter(prefix='/api', tags=['orders'])\n\n\ndef _now() -> str:\n    return datetime.utcnow().isoformat() + 'Z'\n\n\ndef _next_order_number(conn) -> str:\n    row = conn.execute(\"SELECT COALESCE(MAX(id), 0) AS max_id FROM orders\").fetchone()\n    next_id = int(row['max_id']) + 1\n    return f'#{next_id:03d}'\n\n\n@router.post('/orders')\ndef create_order(payload: CreateOrderInput):\n    if not payload.items:\n        raise HTTPException(status_code=400, detail='Order must include at least one item')\n    conn = get_db()\n    try:\n        settings = conn.execute('SELECT is_open, estimated_wait_minutes FROM settings WHERE id = 1').fetchone()\n        if settings is not None and not bool(settings['is_open']):\n            raise HTTPException(status_code=403, detail='Ordering is currently closed')\n        order_number = _next_order_number(conn)\n        now = _now()\n        cur = conn.execute(\n            'INSERT INTO orders (order_number, customer_name, status, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',\n            (order_number, payload.customer_name, 'received', now, now),\n        )\n        order_id = cur.lastrowid\n        for item in payload.items:\n            menu_row = conn.execute('SELECT id, name, price FROM menu_items WHERE id = ?', (item.item_id,)).fetchone()\n            if menu_row is None:\n                raise HTTPException(status_code=404, detail='Menu item not found')\n            conn.execute(\n                'INSERT INTO order_items (order_id, item_id, item_name, item_price, quantity) VALUES (?, ?, ?, ?, ?)',\n                (order_id, menu_row['id'], menu_row['name'], menu_row['price'], item.quantity),\n            )\n        conn.commit()\n        order = conn.execute('SELECT id, order_number, customer_name, status, created_at, updated_at FROM orders WHERE id = ?', (order_id,)).fetchone()\n        items = conn.execute('SELECT id, order_id, item_id, item_name, item_price, quantity FROM order_items WHERE order_id = ? ORDER BY id', (order_id,)).fetchall()\n        result = dict(order)\n        result['items'] = [dict(row) for row in items]\n        return result\n    finally:\n        conn.close()\n\n\n@router.get('/orders/{order_id}')\ndef get_order(order_id: int):\n    conn = get_db()\n    try:\n        order = conn.execute('SELECT id, order_number, customer_name, status, created_at, updated_at FROM orders WHERE id = ?', (order_id,)).fetchone()\n        if order is None:\n            raise HTTPException(status_code=404, detail='Order not found')\n        items = conn.execute('SELECT id, order_id, item_id, item_name, item_price, quantity FROM order_items WHERE order_id = ? ORDER BY id', (order_id,)).fetchall()\n        result = dict(order)\n        result['items'] = [dict(row) for row in items]\n        return result\n    finally:\n        conn.close()\n\n\n@router.patch('/orders/{order_id}/status')\ndef update_order_status(order_id: int, payload: UpdateOrderStatusInput):\n    conn = get_db()\n    try:\n        order = conn.execute('SELECT id FROM orders WHERE id = ?', (order_id,)).fetchone()\n        if order is None:\n            raise HTTPException(status_code=404, detail='Order not found')\n        now = _now()\n        conn.execute('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?', (payload.status, now, order_id))\n        conn.commit()\n        updated = conn.execute('SELECT id, order_number, customer_name, status, created_at, updated_at FROM orders WHERE id = ?', (order_id,)).fetchone()\n        items = conn.execute('SELECT id, order_id, item_id, item_name, item_price, quantity FROM order_items WHERE order_id = ? ORDER BY id', (order_id,)).fetchall()\n        result = dict(updated)\n        result['items'] = [dict(row) for row in items]\n        return result\n    finally:\n        conn.close()\n```",
       "required_output_files": [
-        "backend/routers/menu_items.py"
+        "backend/routers/orders.py"
       ],
       "depends_on": [
         "FOODCART-P0-007",
@@ -275,16 +264,16 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Include exact SQL joins to return category_name in every menu item response."
+        "Use direct get_db() calls, no Depends, and return direct objects with embedded items arrays."
       ],
       "context_files": [
         "backend/database.py",
         "backend/schemas.py"
       ],
-      "worker_done_criteria": "backend/routers/menu_items.py exists and exports router.",
-      "qa_done_criteria": "Importing the router succeeds.",
+      "worker_done_criteria": "router file exports create/get/update order endpoints",
+      "qa_done_criteria": "Python can import router and call route list",
       "qa_cmd": [
-        "cd backend && python -c \"from routers.menu_items import router; print(router.prefix)\""
+        "cd backend && python -c \"from routers.orders import router; print([r.path for r in router.routes])\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -292,35 +281,7 @@
     {
       "id": "FOODCART-P1-003",
       "gate": 1,
-      "description": "## Objective\nCreate the orders API router with order creation, listing, and status updates.\n\n## Files to write\n\n### backend/routers/orders.py\n```py\nfrom datetime import datetime\nfrom fastapi import APIRouter, HTTPException\nfrom database import get_db\nfrom schemas import CreateOrderRequest, Order, StatusUpdate\n\nrouter = APIRouter(prefix='/api/orders', tags=['orders'])\n\nSTATUSES = ['Preparing', 'Ready', 'Picked Up']\n\n@router.get('', response_model=list[Order])\ndef list_orders():\n    conn = get_db()\n    orders = conn.execute('SELECT * FROM orders ORDER BY datetime(created_at) DESC, id DESC').fetchall()\n    result = []\n    for order in orders:\n        items = conn.execute('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC', (order['id'],)).fetchall()\n        result.append({**dict(order), 'items': [dict(item) for item in items]})\n    conn.close()\n    return result\n\n@router.get('/{order_id}', response_model=Order)\ndef get_order(order_id: int):\n    conn = get_db()\n    order = conn.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()\n    if order is None:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Order not found')\n    items = conn.execute('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC', (order_id,)).fetchall()\n    conn.close()\n    return {**dict(order), 'items': [dict(item) for item in items]}\n\n@router.post('', response_model=Order)\ndef create_order(payload: CreateOrderRequest):\n    conn = get_db()\n    cur = conn.cursor()\n    now = datetime.utcnow().isoformat()\n    order_number = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')[-10:]\n    subtotal = 0.0\n    item_rows = []\n    for item in payload.items:\n        menu_item = cur.execute('SELECT id, name, price FROM menu_items WHERE id = ? AND is_available = 1', (item.menu_item_id,)).fetchone()\n        if menu_item is None:\n            conn.close()\n            raise HTTPException(status_code=400, detail='Invalid menu item')\n        line_total = float(menu_item['price']) * item.quantity\n        subtotal += line_total\n        item_rows.append((menu_item['id'], menu_item['name'], item.quantity, float(menu_item['price']), line_total))\n    cur.execute('INSERT INTO orders (order_number, customer_name, customer_phone, status, subtotal, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)', (order_number, payload.customer_name, payload.customer_phone, 'Preparing', subtotal, now, now))\n    order_id = cur.lastrowid\n    for menu_item_id, menu_item_name, quantity, unit_price, line_total in item_rows:\n        cur.execute('INSERT INTO order_items (order_id, menu_item_id, menu_item_name, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?, ?)', (order_id, menu_item_id, menu_item_name, quantity, unit_price, line_total))\n    conn.commit()\n    order = cur.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()\n    items = cur.execute('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC', (order_id,)).fetchall()\n    conn.close()\n    return {**dict(order), 'items': [dict(item) for item in items]}\n\n@router.patch('/{order_id}/status', response_model=Order)\ndef update_order_status(order_id: int, payload: StatusUpdate):\n    if payload.status not in STATUSES:\n        raise HTTPException(status_code=400, detail='Invalid status')\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('UPDATE orders SET status = ?, updated_at = ? WHERE id = ?', (payload.status, datetime.utcnow().isoformat(), order_id))\n    if cur.rowcount == 0:\n        conn.close()\n        raise HTTPException(status_code=404, detail='Order not found')\n    conn.commit()\n    order = cur.execute('SELECT * FROM orders WHERE id = ?', (order_id,)).fetchone()\n    items = cur.execute('SELECT * FROM order_items WHERE order_id = ? ORDER BY id ASC', (order_id,)).fetchall()\n    conn.close()\n    return {**dict(order), 'items': [dict(item) for item in items]}\n```",
-      "required_output_files": [
-        "backend/routers/orders.py"
-      ],
-      "depends_on": [
-        "FOODCART-P0-007",
-        "FOODCART-P0-008"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Order creation must validate available menu items and return the full order with items."
-      ],
-      "context_files": [
-        "backend/database.py",
-        "backend/schemas.py"
-      ],
-      "worker_done_criteria": "backend/routers/orders.py exists and exports router.",
-      "qa_done_criteria": "Importing the router succeeds.",
-      "qa_cmd": [
-        "cd backend && python -c \"from routers.orders import router; print(router.prefix)\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P1-004",
-      "gate": 1,
-      "description": "## Objective\nCreate the settings API router for cart name, hours, and admin PIN management.\n\n## Files to write\n\n### backend/routers/settings.py\n```py\nfrom fastapi import APIRouter\nfrom database import get_db\nfrom schemas import Settings, SettingsUpdate\n\nrouter = APIRouter(prefix='/api/settings', tags=['settings'])\n\n@router.get('', response_model=Settings)\ndef get_settings():\n    conn = get_db()\n    row = conn.execute('SELECT id, cart_name, opening_time, closing_time, admin_pin FROM settings WHERE id = 1').fetchone()\n    conn.close()\n    return dict(row)\n\n@router.put('', response_model=Settings)\ndef update_settings(payload: SettingsUpdate):\n    conn = get_db()\n    cur = conn.cursor()\n    cur.execute('UPDATE settings SET cart_name = ?, opening_time = ?, closing_time = ?, admin_pin = ? WHERE id = 1', (payload.cart_name, payload.opening_time, payload.closing_time, payload.admin_pin))\n    conn.commit()\n    row = cur.execute('SELECT id, cart_name, opening_time, closing_time, admin_pin FROM settings WHERE id = 1').fetchone()\n    conn.close()\n    return dict(row)\n\n@router.post('/verify')\ndef verify_pin(payload: SettingsUpdate):\n    conn = get_db()\n    row = conn.execute('SELECT admin_pin FROM settings WHERE id = 1').fetchone()\n    conn.close()\n    return {'valid': row['admin_pin'] == payload.admin_pin}\n```",
+      "description": "## Objective\nCreate the settings API router for reading and updating the single settings row.\n\n## Files to write\n\n### backend/routers/settings.py\n```py\nfrom fastapi import APIRouter\nfrom database import get_db\nfrom schemas import UpdateSettingsInput\n\nrouter = APIRouter(prefix='/api', tags=['settings'])\n\n\n@router.get('/settings')\ndef get_settings():\n    conn = get_db()\n    try:\n        row = conn.execute('SELECT cart_name, tagline, is_open, estimated_wait_minutes, admin_pin FROM settings WHERE id = 1').fetchone()\n        if row is None:\n            return {'cart_name': 'Food Cart', 'tagline': 'Hot food, fast service.', 'is_open': True, 'estimated_wait_minutes': 10, 'admin_pin': '1234'}\n        result = dict(row)\n        result['is_open'] = bool(result['is_open'])\n        return result\n    finally:\n        conn.close()\n\n\n@router.put('/settings')\ndef update_settings(payload: UpdateSettingsInput):\n    conn = get_db()\n    try:\n        conn.execute(\n            'INSERT INTO settings (id, cart_name, tagline, is_open, estimated_wait_minutes, admin_pin) VALUES (1, ?, ?, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET cart_name = excluded.cart_name, tagline = excluded.tagline, is_open = excluded.is_open, estimated_wait_minutes = excluded.estimated_wait_minutes, admin_pin = excluded.admin_pin',\n            (payload.cart_name, payload.tagline, int(payload.is_open), payload.estimated_wait_minutes, payload.admin_pin),\n        )\n        conn.commit()\n        return get_settings()\n    finally:\n        conn.close()\n```",
       "required_output_files": [
         "backend/routers/settings.py"
       ],
@@ -331,246 +292,16 @@
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Return direct objects only; include a simple PIN verification endpoint."
+        "Return the settings object directly and preserve admin_pin in the response."
       ],
       "context_files": [
         "backend/database.py",
         "backend/schemas.py"
       ],
-      "worker_done_criteria": "backend/routers/settings.py exists and exports router.",
-      "qa_done_criteria": "Importing the router succeeds.",
+      "worker_done_criteria": "router file exports get and update settings endpoints",
+      "qa_done_criteria": "Python can import router and list routes",
       "qa_cmd": [
-        "cd backend && python -c \"from routers.settings import router; print(router.prefix)\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P1-005",
-      "gate": 1,
-      "description": "## Objective\nCreate the daily summary API router for order count and total sales for a given date.\n\n## Files to write\n\n### backend/routers/reports.py\n```py\nfrom fastapi import APIRouter\nfrom database import get_db\nfrom schemas import DailySummary\n\nrouter = APIRouter(prefix='/api/reports', tags=['reports'])\n\n@router.get('/daily-summary', response_model=DailySummary)\ndef daily_summary(date: str):\n    conn = get_db()\n    row = conn.execute(\n        'SELECT ? AS date, COUNT(*) AS order_count, COALESCE(SUM(subtotal), 0) AS total_sales FROM orders WHERE date(created_at) = date(?)',\n        (date, date),\n    ).fetchone()\n    conn.close()\n    return dict(row)\n```",
-      "required_output_files": [
-        "backend/routers/reports.py"
-      ],
-      "depends_on": [
-        "FOODCART-P0-007",
-        "FOODCART-P0-008"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Use the exact SQL aggregation shown."
-      ],
-      "context_files": [
-        "backend/database.py",
-        "backend/schemas.py"
-      ],
-      "worker_done_criteria": "backend/routers/reports.py exists and exports router.",
-      "qa_done_criteria": "Importing the router succeeds.",
-      "qa_cmd": [
-        "cd backend && python -c \"from routers.reports import router; print(router.prefix)\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-001",
-      "gate": 2,
-      "description": "## Objective\nCreate the customer home page that loads categories and menu items, supports cart actions, and links to checkout and order tracking.\n\n## Files to write\n\n### frontend/src/pages/HomePage.tsx\n```tsx\nimport { useEffect, useMemo, useState } from 'react';\nimport { Link } from 'react-router-dom';\nimport { Category, MenuItem } from '../types';\n\nexport default function HomePage() {\n  const [categories, setCategories] = useState<Category[]>([]);\n  const [items, setItems] = useState<MenuItem[]>([]);\n  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);\n  const [cart, setCart] = useState<Record<number, number>>({});\n\n  useEffect(() => {\n    Promise.all([fetch('/api/categories').then(r => r.json()), fetch('/api/menu-items').then(r => r.json())])\n      .then(([cats, menu]) => {\n        setCategories(cats);\n        setItems(menu);\n        setSelectedCategoryId(cats[0]?.id ?? null);\n      });\n  }, []);\n\n  const visibleItems = useMemo(() => items.filter(i => selectedCategoryId === null || i.category_id === selectedCategoryId), [items, selectedCategoryId]);\n  const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);\n\n  return <div style={{ padding: 16, fontFamily: 'system-ui', background: '#fff8ef', minHeight: '100vh' }}>\n    <h1 style={{ margin: 0 }}>Pop-Up Food Cart</h1>\n    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', margin: '16px 0' }}>\n      {categories.map(c => <button key={c.id} onClick={() => setSelectedCategoryId(c.id)} style={{ padding: '8px 12px', borderRadius: 999, border: '1px solid #f59e0b', background: selectedCategoryId === c.id ? '#f59e0b' : 'white' }}>{c.name}</button>)}\n    </div>\n    <div style={{ display: 'grid', gap: 12 }}>\n      {visibleItems.map(item => <div key={item.id} style={{ background: 'white', borderRadius: 16, padding: 12, boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>\n        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>\n          <div>\n            <div style={{ fontWeight: 700 }}>{item.name}</div>\n            <div style={{ fontSize: 14, color: '#555' }}>{item.description}</div>\n            <div style={{ marginTop: 8 }}>${item.price.toFixed(2)}</div>\n          </div>\n          <button onClick={() => setCart(prev => ({ ...prev, [item.id]: (prev[item.id] ?? 0) + 1 }))} style={{ alignSelf: 'center', padding: '8px 12px', borderRadius: 12, background: '#f59e0b', color: 'white', border: 0 }}>Add</button>\n        </div>\n      </div>)}\n    </div>\n    <div style={{ position: 'sticky', bottom: 16, marginTop: 16, background: '#111827', color: 'white', padding: 12, borderRadius: 16, display: 'flex', justifyContent: 'space-between' }}>\n      <span>{cartCount} in cart</span>\n      <Link to=\"/checkout\" style={{ color: 'white' }}>Checkout</Link>\n    </div>\n    <div style={{ marginTop: 12 }}><Link to=\"/track\" style={{ color: '#b45309' }}>Track order</Link></div>\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/HomePage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-001",
-        "FOODCART-P1-002"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Use fetch with relative /api URLs and direct JSON parsing."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/categories.py",
-        "backend/routers/menu_items.py"
-      ],
-      "worker_done_criteria": "HomePage.tsx exists and renders categories and menu items.",
-      "qa_done_criteria": "TypeScript compile check for the page passes.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('home page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-002",
-      "gate": 2,
-      "description": "## Objective\nCreate the checkout page that submits an order and shows the confirmation with order number.\n\n## Files to write\n\n### frontend/src/pages/CheckoutPage.tsx\n```tsx\nimport { useState } from 'react';\nimport { useNavigate } from 'react-router-dom';\nimport { CreateOrderInput } from '../types';\n\nexport default function CheckoutPage() {\n  const navigate = useNavigate();\n  const [customerName, setCustomerName] = useState('');\n  const [customerPhone, setCustomerPhone] = useState('');\n  const [submitting, setSubmitting] = useState(false);\n  const [orderNumber, setOrderNumber] = useState('');\n\n  async function submitOrder() {\n    setSubmitting(true);\n    const payload: CreateOrderInput = { customer_name: customerName || null, customer_phone: customerPhone || null, items: [] };\n    const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });\n    const data = await res.json();\n    setOrderNumber(data.order_number);\n    setSubmitting(false);\n  }\n\n  if (orderNumber) return <div style={{ padding: 16 }}><h1>Order confirmed</h1><p>Your order number is {orderNumber}</p><button onClick={() => navigate('/track')}>Track status</button></div>;\n\n  return <div style={{ padding: 16 }}>\n    <h1>Checkout</h1>\n    <input value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder=\"Name\" />\n    <input value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder=\"Phone\" />\n    <button disabled={submitting} onClick={submitOrder}>{submitting ? 'Submitting...' : 'Submit order'}</button>\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/CheckoutPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-003"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Submit to /api/orders and show the returned order_number directly."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/orders.py"
-      ],
-      "worker_done_criteria": "CheckoutPage.tsx exists and submits an order.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('checkout page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-003",
-      "gate": 2,
-      "description": "## Objective\nCreate the customer order tracking page that polls the order status in real time.\n\n## Files to write\n\n### frontend/src/pages/TrackOrderPage.tsx\n```tsx\nimport { useEffect, useState } from 'react';\nimport { Order } from '../types';\n\nexport default function TrackOrderPage() {\n  const [orderId, setOrderId] = useState('');\n  const [order, setOrder] = useState<Order | null>(null);\n\n  useEffect(() => {\n    if (!orderId) return;\n    const timer = setInterval(async () => {\n      const res = await fetch(`/api/orders/${orderId}`);\n      if (res.ok) setOrder(await res.json());\n    }, 3000);\n    return () => clearInterval(timer);\n  }, [orderId]);\n\n  return <div style={{ padding: 16 }}>\n    <h1>Track Order</h1>\n    <input value={orderId} onChange={e => setOrderId(e.target.value)} placeholder=\"Order ID\" />\n    {order && <div style={{ marginTop: 16 }}>\n      <div>Order #{order.order_number}</div>\n      <div>Status: {order.status}</div>\n    </div>}\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/TrackOrderPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-003"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Use polling with fetch to the exact order detail endpoint."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/orders.py"
-      ],
-      "worker_done_criteria": "TrackOrderPage.tsx exists and polls order status.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('track page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-004",
-      "gate": 2,
-      "description": "## Objective\nCreate the admin login page that verifies the PIN before entering the admin panel.\n\n## Files to write\n\n### frontend/src/pages/AdminLoginPage.tsx\n```tsx\nimport { useState } from 'react';\nimport { useNavigate } from 'react-router-dom';\n\nexport default function AdminLoginPage() {\n  const navigate = useNavigate();\n  const [pin, setPin] = useState('');\n  const [error, setError] = useState('');\n\n  async function login() {\n    const res = await fetch('/api/settings/verify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ cart_name: '', opening_time: '', closing_time: '', admin_pin: pin }) });\n    const data = await res.json();\n    if (data.valid) navigate('/admin'); else setError('Invalid PIN');\n  }\n\n  return <div style={{ padding: 16 }}>\n    <h1>Admin Login</h1>\n    <input value={pin} onChange={e => setPin(e.target.value)} placeholder=\"PIN\" type=\"password\" />\n    <button onClick={login}>Enter</button>\n    {error && <div>{error}</div>}\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/AdminLoginPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-004"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Use the verify endpoint and navigate to /admin on success."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/settings.py"
-      ],
-      "worker_done_criteria": "AdminLoginPage.tsx exists and verifies PIN.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('admin login page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-005",
-      "gate": 2,
-      "description": "## Objective\nCreate the admin dashboard page that shows orders, daily summary, and links to management screens.\n\n## Files to write\n\n### frontend/src/pages/AdminDashboardPage.tsx\n```tsx\nimport { useEffect, useState } from 'react';\nimport { DailySummary, Order } from '../types';\n\nexport default function AdminDashboardPage() {\n  const [orders, setOrders] = useState<Order[]>([]);\n  const [summary, setSummary] = useState<DailySummary | null>(null);\n\n  useEffect(() => {\n    fetch('/api/orders').then(r => r.json()).then(setOrders);\n    fetch(`/api/reports/daily-summary?date=${new Date().toISOString().slice(0, 10)}`).then(r => r.json()).then(setSummary);\n  }, []);\n\n  return <div style={{ padding: 16 }}>\n    <h1>Admin Dashboard</h1>\n    {summary && <div>Today: {summary.order_count} orders, ${summary.total_sales.toFixed(2)}</div>}\n    <div style={{ marginTop: 16 }}>\n      {orders.map(order => <div key={order.id}>{order.order_number} \u2014 {order.status}</div>)}\n    </div>\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/AdminDashboardPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-003",
-        "FOODCART-P1-005"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Load orders and daily summary from the exact endpoints shown."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/orders.py",
-        "backend/routers/reports.py"
-      ],
-      "worker_done_criteria": "AdminDashboardPage.tsx exists and renders orders and summary.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('admin dashboard page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-006",
-      "gate": 2,
-      "description": "## Objective\nCreate the admin menu management page for adding, editing, deleting, and toggling availability of menu items.\n\n## Files to write\n\n### frontend/src/pages/AdminMenuPage.tsx\n```tsx\nimport { useEffect, useState } from 'react';\nimport { Category, MenuItem } from '../types';\n\nexport default function AdminMenuPage() {\n  const [categories, setCategories] = useState<Category[]>([]);\n  const [items, setItems] = useState<MenuItem[]>([]);\n\n  useEffect(() => {\n    fetch('/api/categories').then(r => r.json()).then(setCategories);\n    fetch('/api/menu-items').then(r => r.json()).then(setItems);\n  }, []);\n\n  return <div style={{ padding: 16 }}>\n    <h1>Menu Management</h1>\n    {items.map(item => <div key={item.id}>{item.name} \u2014 {item.is_available ? 'Available' : 'Sold out'}</div>)}\n    <div style={{ marginTop: 16 }}>Categories: {categories.map(c => c.name).join(', ')}</div>\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/AdminMenuPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-001",
-        "FOODCART-P1-002"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Use the exact API endpoints for categories and menu items."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/categories.py",
-        "backend/routers/menu_items.py"
-      ],
-      "worker_done_criteria": "AdminMenuPage.tsx exists and loads categories and items.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('admin menu page ok')\""
-      ],
-      "requires_live_review": false,
-      "is_parent": false
-    },
-    {
-      "id": "FOODCART-P2-007",
-      "gate": 2,
-      "description": "## Objective\nCreate the admin settings page for cart name, hours, and PIN configuration.\n\n## Files to write\n\n### frontend/src/pages/AdminSettingsPage.tsx\n```tsx\nimport { useEffect, useState } from 'react';\nimport { CartSettings } from '../types';\n\nexport default function AdminSettingsPage() {\n  const [settings, setSettings] = useState<CartSettings | null>(null);\n\n  useEffect(() => {\n    fetch('/api/settings').then(r => r.json()).then(setSettings);\n  }, []);\n\n  return <div style={{ padding: 16 }}>\n    <h1>Settings</h1>\n    {settings && <div>\n      <div>{settings.cart_name}</div>\n      <div>{settings.opening_time} - {settings.closing_time}</div>\n    </div>}\n  </div>;\n}\n```",
-      "required_output_files": [
-        "frontend/src/pages/AdminSettingsPage.tsx"
-      ],
-      "depends_on": [
-        "FOODCART-P0-006",
-        "FOODCART-P1-004"
-      ],
-      "parent_id": null,
-      "interaction_spec": "",
-      "constraints": [
-        "Load settings from /api/settings and render them directly."
-      ],
-      "context_files": [
-        "frontend/src/types/index.ts",
-        "backend/routers/settings.py"
-      ],
-      "worker_done_criteria": "AdminSettingsPage.tsx exists and loads settings.",
-      "qa_done_criteria": "Page imports compile.",
-      "qa_cmd": [
-        "cd frontend && node -e \"console.log('admin settings page ok')\""
+        "cd backend && python -c \"from routers.settings import router; print([r.path for r in router.routes])\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -578,7 +309,7 @@
     {
       "id": "FOODCART-P3-001",
       "gate": 3,
-      "description": "## Objective\nCreate the FastAPI application entrypoint that wires all routers, enables CORS, disables redirect slashes, and serves a health check.\n\n## Files to write\n\n### backend/main.py\n```py\nfrom fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom fastapi.staticfiles import StaticFiles\nfrom routers.categories import router as categories_router\nfrom routers.menu_items import router as menu_items_router\nfrom routers.orders import router as orders_router\nfrom routers.reports import router as reports_router\nfrom routers.settings import router as settings_router\nfrom database import init_db, UPLOAD_DIR\n\napp = FastAPI(redirect_slashes=False)\n\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8000', 'http://127.0.0.1:8000'],\n    allow_credentials=True,\n    allow_methods=['*'],\n    allow_headers=['*'],\n)\n\napp.include_router(categories_router)\napp.include_router(menu_items_router)\napp.include_router(orders_router)\napp.include_router(reports_router)\napp.include_router(settings_router)\n\napp.mount('/uploads', StaticFiles(directory=str(UPLOAD_DIR)), name='uploads')\n\n@app.on_event('startup')\ndef startup():\n    init_db()\n\n@app.get('/api/health')\ndef health():\n    return {'ok': True}\n```",
+      "description": "## Objective\nCreate the backend main application that wires all routers, enables CORS, disables redirect slashes, and serves a health check.\n\n## Files to write\n\n### backend/main.py\n```py\nfrom fastapi import FastAPI\nfrom fastapi.middleware.cors import CORSMiddleware\nfrom fastapi.staticfiles import StaticFiles\nfrom database import UPLOAD_DIR, init_db\nfrom routers.menu import router as menu_router\nfrom routers.orders import router as orders_router\nfrom routers.settings import router as settings_router\n\ninit_db()\napp = FastAPI(redirect_slashes=False)\napp.add_middleware(\n    CORSMiddleware,\n    allow_origins=['http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:8000', 'http://127.0.0.1:8000'],\n    allow_credentials=True,\n    allow_methods=['*'],\n    allow_headers=['*'],\n)\napp.mount('/uploads', StaticFiles(directory=str(UPLOAD_DIR)), name='uploads')\napp.include_router(menu_router)\napp.include_router(orders_router)\napp.include_router(settings_router)\n\n\n@app.get('/api/health')\ndef health():\n    return {'ok': True}\n```",
       "required_output_files": [
         "backend/main.py"
       ],
@@ -586,28 +317,23 @@
         "FOODCART-P1-001",
         "FOODCART-P1-002",
         "FOODCART-P1-003",
-        "FOODCART-P1-004",
-        "FOODCART-P1-005",
         "FOODCART-P0-008"
       ],
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use redirect_slashes=False and include_router for every router."
+        "Import and include_router all routers, add CORS for localhost origins, and set redirect_slashes=False."
       ],
       "context_files": [
         "backend/database.py",
-        "backend/schemas.py",
-        "backend/routers/categories.py",
-        "backend/routers/menu_items.py",
+        "backend/routers/menu.py",
         "backend/routers/orders.py",
-        "backend/routers/reports.py",
         "backend/routers/settings.py"
       ],
-      "worker_done_criteria": "backend/main.py exists and imports all routers.",
-      "qa_done_criteria": "FastAPI app imports successfully and health route exists.",
+      "worker_done_criteria": "backend/main.py imports and exposes app",
+      "qa_done_criteria": "Uvicorn can import backend.main:app",
       "qa_cmd": [
-        "cd backend && python -c \"from main import app; print(app.redirect_slashes)\""
+        "cd backend && python -c \"from main import app; print(app.title if hasattr(app,'title') else 'ok')\""
       ],
       "requires_live_review": false,
       "is_parent": false
@@ -615,37 +341,26 @@
     {
       "id": "FOODCART-P3-002",
       "gate": 3,
-      "description": "## Objective\nCreate the frontend application router that wires all pages into BrowserRouter routes.\n\n## Files to write\n\n### frontend/src/App.tsx\n```tsx\nimport { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';\nimport HomePage from './pages/HomePage';\nimport CheckoutPage from './pages/CheckoutPage';\nimport TrackOrderPage from './pages/TrackOrderPage';\nimport AdminLoginPage from './pages/AdminLoginPage';\nimport AdminDashboardPage from './pages/AdminDashboardPage';\nimport AdminMenuPage from './pages/AdminMenuPage';\nimport AdminSettingsPage from './pages/AdminSettingsPage';\n\nexport default function App() {\n  return <BrowserRouter>\n    <Routes>\n      <Route path=\"/\" element={<HomePage />} />\n      <Route path=\"/checkout\" element={<CheckoutPage />} />\n      <Route path=\"/track\" element={<TrackOrderPage />} />\n      <Route path=\"/admin/login\" element={<AdminLoginPage />} />\n      <Route path=\"/admin\" element={<AdminDashboardPage />} />\n      <Route path=\"/admin/menu\" element={<AdminMenuPage />} />\n      <Route path=\"/admin/settings\" element={<AdminSettingsPage />} />\n      <Route path=\"*\" element={<Navigate to=\"/\" replace />} />\n    </Routes>\n  </BrowserRouter>;\n}\n```",
+      "description": "## Objective\nCreate the frontend app shell with BrowserRouter and routes for the initial customer and admin pages.\n\n## Files to write\n\n### frontend/src/App.tsx\n```tsx\nimport { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';\n\nfunction Placeholder({ title }: { title: string }) {\n  return <div style={{ padding: 24 }}>{title}</div>;\n}\n\nexport default function App() {\n  return (\n    <BrowserRouter>\n      <Routes>\n        <Route path=\"/\" element={<Placeholder title=\"Menu\" />} />\n        <Route path=\"/cart\" element={<Placeholder title=\"Cart\" />} />\n        <Route path=\"/checkout\" element={<Placeholder title=\"Checkout\" />} />\n        <Route path=\"/confirmation/:orderId\" element={<Placeholder title=\"Confirmation\" />} />\n        <Route path=\"/status/:orderId\" element={<Placeholder title=\"Order Status\" />} />\n        <Route path=\"/admin\" element={<Placeholder title=\"Admin\" />} />\n        <Route path=\"*\" element={<Navigate to=\"/\" replace />} />\n      </Routes>\n    </BrowserRouter>\n  );\n}\n```",
       "required_output_files": [
         "frontend/src/App.tsx"
       ],
       "depends_on": [
-        "FOODCART-P2-001",
-        "FOODCART-P2-002",
-        "FOODCART-P2-003",
-        "FOODCART-P2-004",
-        "FOODCART-P2-005",
-        "FOODCART-P2-006",
-        "FOODCART-P2-007"
+        "FOODCART-P0-005",
+        "FOODCART-P0-006"
       ],
       "parent_id": null,
       "interaction_spec": "",
       "constraints": [
-        "Use BrowserRouter, Routes, and Route exactly as shown."
+        "Use BrowserRouter, Routes, Route, and a catch-all redirect."
       ],
       "context_files": [
-        "frontend/src/pages/HomePage.tsx",
-        "frontend/src/pages/CheckoutPage.tsx",
-        "frontend/src/pages/TrackOrderPage.tsx",
-        "frontend/src/pages/AdminLoginPage.tsx",
-        "frontend/src/pages/AdminDashboardPage.tsx",
-        "frontend/src/pages/AdminMenuPage.tsx",
-        "frontend/src/pages/AdminSettingsPage.tsx"
+        "frontend/src/types/index.ts"
       ],
-      "worker_done_criteria": "frontend/src/App.tsx exists and routes to every page.",
-      "qa_done_criteria": "Frontend app imports and route tree compile.",
+      "worker_done_criteria": "App.tsx exports a React component with routes",
+      "qa_done_criteria": "Frontend build can import App.tsx",
       "qa_cmd": [
-        "cd frontend && node -e \"console.log('app ok')\""
+        "cd frontend && node -e \"import('./src/App.tsx').then(()=>console.log('ok'))\""
       ],
       "requires_live_review": false,
       "is_parent": false
