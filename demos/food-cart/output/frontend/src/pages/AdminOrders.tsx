@@ -9,7 +9,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrderStatusWebSocket } from '../hooks/useOrderStatusWebSocket';
 import type { Order, OrderStatus } from '../types/shared';
-import '../styles/design-tokens.css';
 
 // ---------------------------------------------------------------------------
 // Helpers

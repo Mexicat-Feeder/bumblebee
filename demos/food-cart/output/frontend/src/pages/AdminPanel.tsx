@@ -8,7 +8,6 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import '../styles/design-tokens.css';
 
 interface AdminPanelProps {
   onLogout: () => void;

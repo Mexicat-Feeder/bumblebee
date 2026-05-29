@@ -7,7 +7,6 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/design-tokens.css';
 
 interface SettingsData {
   cart_name: string;

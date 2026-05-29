@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import '../styles/design-tokens.css';
 
 interface HeaderProps {
   title: string;

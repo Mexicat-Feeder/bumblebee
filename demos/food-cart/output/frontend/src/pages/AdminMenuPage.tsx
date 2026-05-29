@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { MenuItem, MenuItemInput } from '../types';
-import './styles/design-tokens.css';
 
 export default function AdminMenuPage() {
   const navigate = useNavigate();

@@ -33,7 +33,7 @@ if str(_BUMBLEBEE_ROOT) not in sys.path:
     sys.path.insert(0, str(_BUMBLEBEE_ROOT))
 
 DEFAULT_LEMONADE_URL = "http://[::1]:13305"
-DEFAULT_CLOUD_MODEL = "gpt-5.4"
+DEFAULT_CLOUD_MODEL = "gpt-5.5"
 DEFAULT_CLOUD_BASE_URL = "https://api.openai.com/v1"
 
 
@@ -135,10 +135,12 @@ def _make_llm_fn(base_url: str, model_id: str, api_key: str):
 
         # GPT-5.x uses max_completion_tokens; older models use max_tokens
         token_key = "max_completion_tokens" if model_id.startswith("gpt-5") else "max_tokens"
+        # GPT-5.5 only supports temperature=1
+        temp = 1.0 if model_id in ("gpt-5.5", "o3", "o4-mini") else 0.3
         payload = {
             "model": model_id,
             "messages": messages,
-            "temperature": 0.3,
+            "temperature": temp,
             token_key: 32000,
         }
 
@@ -164,13 +166,14 @@ def _make_streaming_llm(base_url: str, model_id: str, api_key: str):
             headers["Authorization"] = f"Bearer {api_key}"
 
         token_key = "max_completion_tokens" if model_id.startswith("gpt-5") else "max_tokens"
+        temp = 1.0 if model_id in ("gpt-5.5", "o3", "o4-mini") else 0.3
         payload = {
             "model": model_id,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            "temperature": 0.3,
+            "temperature": temp,
             token_key: 32000,
             "stream": True,
         }

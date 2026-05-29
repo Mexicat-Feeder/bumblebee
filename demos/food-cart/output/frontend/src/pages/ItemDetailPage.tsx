@@ -3,7 +3,6 @@ import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import { useCart } from '../context/CartContext';
 import { MenuItem, Settings } from '../types';
-import './styles/design-tokens.css';
 
 export default function ItemDetailPage() {
   const { itemId } = useParams();

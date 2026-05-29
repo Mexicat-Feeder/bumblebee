@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { AdminAuthResponse } from '../types';
-import './styles/design-tokens.css';
 
 export default function AdminLoginPage() {
   const navigate = useNavigate();

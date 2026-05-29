@@ -5,7 +5,6 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { OrderItem } from "../types/shared";
-import '../styles/design-tokens.css';
 
 // ---------------------------------------------------------------------------
 // Cart context / storage helpers

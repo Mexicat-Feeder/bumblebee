@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import { Order } from '../types';
-import './design-tokens.css';
 
 const LABELS: Record<string, string> = {
   received: 'Received',

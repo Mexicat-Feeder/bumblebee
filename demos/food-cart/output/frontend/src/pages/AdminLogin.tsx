@@ -6,7 +6,6 @@
  */
 
 import { useState, FormEvent, ChangeEvent } from 'react';
-import '../styles/design-tokens.css';
 
 interface AdminLoginProps {
   onLoginSuccess: () => void;

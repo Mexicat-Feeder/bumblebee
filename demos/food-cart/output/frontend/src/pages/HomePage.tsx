@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Category, MenuItem } from '../types';
-import '../styles/design-tokens.css';
 
 export default function HomePage() {
   const [categories, setCategories] = useState<Category[]>([]);

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import Header from '../components/Header';
 import { useCart } from '../context/CartContext';
 import { Category, MenuItem, Settings } from '../types';
-import './styles/design-tokens.css';
 
 function formatPrice(price: number) {
   return `$${(price / 100).toFixed(2)}`;

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { DailySummary, Order } from '../types';
-import '../styles/design-tokens.css';
 
 export default function AdminDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);

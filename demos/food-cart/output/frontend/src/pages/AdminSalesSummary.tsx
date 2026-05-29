@@ -6,7 +6,6 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../styles/design-tokens.css';
 
 interface DailySalesSummary {
   totalSales: number;

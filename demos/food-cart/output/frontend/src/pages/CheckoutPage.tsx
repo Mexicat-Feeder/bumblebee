@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { useCart } from '../context/CartContext';
 import { CreateOrderInput, Order } from '../types';
-import './styles/design-tokens.css';
 
 export default function CheckoutPage() {
   const navigate = useNavigate();

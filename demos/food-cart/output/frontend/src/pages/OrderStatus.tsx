@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useOrderStatusWebSocket, OrderStatusMessage } from "../hooks/useOrderStatusWebSocket";
 import { OrderStatus as OrderStatusType } from "../types/shared";
-import '../styles/design-tokens.css';
 
 // ---------------------------------------------------------------------------
 // Constants

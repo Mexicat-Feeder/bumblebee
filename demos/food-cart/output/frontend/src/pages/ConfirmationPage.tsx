@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import { Order, Settings } from '../types';
-import './styles/design-tokens.css';
 
 export default function ConfirmationPage() {
   const { orderId } = useParams();

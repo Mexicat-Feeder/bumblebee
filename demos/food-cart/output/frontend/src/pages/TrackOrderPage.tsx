@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Order } from '../types';
-import '../styles/design-tokens.css';
 
 export default function TrackOrderPage() {
   const [orderId, setOrderId] = useState('');

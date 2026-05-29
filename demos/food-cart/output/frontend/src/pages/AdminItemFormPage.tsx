@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import Header from '../components/Header';
 import { Category, MenuItem, MenuItemInput } from '../types';
-import './styles/design-tokens.css';
 
 const emptyForm: MenuItemInput = {
   name: '',
