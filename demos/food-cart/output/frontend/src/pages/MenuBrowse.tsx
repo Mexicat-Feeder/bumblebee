@@ -26,7 +26,7 @@ async function fetchCategories(): Promise<MenuCategory[]> {
 }
 
 async function fetchMenuItems(): Promise<MenuItem[]> {
-  const res = await fetch(`${API_BASE}/menu`);
+  const res = await fetch(`${API_BASE}/items`);
   if (!res.ok) throw new Error("Failed to fetch menu items");
   const raw = await res.json();
   const data = Array.isArray(raw) ? raw : (raw.items || []);

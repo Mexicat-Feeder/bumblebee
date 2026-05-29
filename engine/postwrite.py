@@ -41,8 +41,8 @@ def strip_css_imports(file_path: str | Path) -> bool:
         return False
     try:
         content = p.read_text(encoding='utf-8')
-        # Remove any import of .css files (design-tokens, component CSS, etc.)
-        cleaned = re.sub(r"import\s+['\"][^'\"]*\.css['\"];?\r?\n?", '', content)
+        # Remove hallucinated design-tokens.css imports (but keep index.css for Tailwind)
+        cleaned = re.sub(r"import\s+['\"][^'\"]*design-tokens[^'\"]*\.css['\"];?\r?\n?", '', content)
         if cleaned != content:
             p.write_text(cleaned, encoding='utf-8')
             return True
