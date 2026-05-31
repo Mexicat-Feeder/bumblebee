@@ -154,7 +154,7 @@ def _retry_eligible(conn: sqlite3.Connection, ticket_id: str, blocked_code: str 
     if not blocked_code:
         return False
     routing = BLOCKED_CODE_ROUTING.get(blocked_code)
-    if routing not in ("retry", "retry_then_coding"):
+    if routing not in ("retry", "retry_then_coding", "coding"):
         return False
     row = conn.execute(
         "SELECT attempt_count FROM tickets WHERE id=?", (ticket_id,),
