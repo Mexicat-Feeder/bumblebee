@@ -455,36 +455,58 @@ def commit_decomposition(slug: str):
         raise HTTPException(status_code=400, detail="Plan has no tickets to commit.")
 
     # Ensure project scaffold exists via new_project.py
-    # Always run scaffold to regenerate template files (reset clears output dir)
-    from scripts.new_project import create_project as create_project_scaffold, NewProjectRequest
-
+    # But prefer existing demo project-config if it exists (avoids DB path mismatch)
     config_path = _get_project_config_path(slug)
-    req = NewProjectRequest(
-        slug=slug,
-        display_name=project.get("name", slug),
-        deliverable_root=project.get("deliverable_root", f"./output/{slug}"),
-        tech_stack=project.get("tech_stack", ""),
-    )
-    scaffold_result = create_project_scaffold(
-        request=req,
-        engine_root=_BUMBLEBEE_ROOT / "engine",
-        workspace_root=_BUMBLEBEE_ROOT,
-    )
-    if not scaffold_result.success:
-        log.warning("Scaffold creation had errors: %s", scaffold_result.errors)
-    if scaffold_result.config_path:
-        config_path = Path(scaffold_result.config_path)
+    if not config_path.exists():
+        from scripts.new_project import create_project as create_project_scaffold, NewProjectRequest
+        req = NewProjectRequest(
+            slug=slug,
+            display_name=project.get("name", slug),
+            deliverable_root=project.get("deliverable_root", f"./output/{slug}"),
+            tech_stack=project.get("tech_stack", ""),
+        )
+        scaffold_result = create_project_scaffold(
+            request=req,
+            engine_root=_BUMBLEBEE_ROOT / "engine",
+            workspace_root=_BUMBLEBEE_ROOT,
+        )
+        if not scaffold_result.success:
+            log.warning("Scaffold creation had errors: %s", scaffold_result.errors)
+        if scaffold_result.config_path:
+            config_path = Path(scaffold_result.config_path)
+    else:
+        log.info("Using existing project config at %s", config_path)
+        # Ensure output dirs exist (reset may have cleared them)
+        config_data_check = json.loads(config_path.read_text(encoding="utf-8"))
+        for dir_key in ("deliverable_root", "artifacts_dir", "checks_dir"):
+            d = config_data_check.get(dir_key, "")
+            if d:
+                dp = Path(d)
+                if not dp.is_absolute():
+                    dp = (config_path.parent / dp).resolve()
+                dp.mkdir(parents=True, exist_ok=True)
 
     # Write AI config into project-config.json
     _inject_ai_config(config_path, project)
 
-    # Get DB path from project config — resolve relative to the config file's directory
-    config_data = json.loads(config_path.read_text(encoding="utf-8"))
-    raw_db_path = config_data.get("db_path", str(config_path.parent / "tickets.db"))
-    db_path_obj = Path(raw_db_path)
-    if not db_path_obj.is_absolute():
-        db_path_obj = (config_path.parent / db_path_obj).resolve()
-    db_path = str(db_path_obj)
+    # Resolve DB path — prefer dashboard config (single source of truth),
+    # fall back to project config
+    dashboard_config = get_config()
+    dash_db = dashboard_config.get("ticketDbPaths", {}).get(slug)
+    if dash_db:
+        db_path_obj = Path(dash_db)
+        if not db_path_obj.is_absolute():
+            dashboard_root = Path(__file__).resolve().parent.parent.parent
+            db_path_obj = (dashboard_root / db_path_obj).resolve()
+        db_path = str(db_path_obj)
+        log.info("Using dashboard ticketDbPaths for DB: %s", db_path)
+    else:
+        config_data = json.loads(config_path.read_text(encoding="utf-8"))
+        raw_db_path = config_data.get("db_path", str(config_path.parent / "tickets.db"))
+        db_path_obj = Path(raw_db_path)
+        if not db_path_obj.is_absolute():
+            db_path_obj = (config_path.parent / db_path_obj).resolve()
+        db_path = str(db_path_obj)
 
     # Commit plan to DB
     from engine.event_log import init_db
