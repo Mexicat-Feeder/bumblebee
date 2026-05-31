@@ -19,6 +19,35 @@
   const unsub = pipelineStore.subscribe(s => state = s);
 
   let costPoller: ReturnType<typeof setInterval> | null = null;
+  let cloudCosts: { decompose: number; integration: number; total: number } = { decompose: 0, integration: 0, total: 0 };
+
+  async function fetchCloudCosts() {
+    try {
+      const res = await fetch('/api/pixel/stats');
+      if (res.ok) {
+        const d = await res.json();
+        if (d.available && d.phases) {
+          cloudCosts = {
+            decompose: d.phases?.decompose?.cost_usd ?? 0,
+            integration: d.phases?.integration?.cost_usd ?? 0,
+            total: d.estimatedCostUsd ?? 0,
+          };
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  // Poll cloud costs while pipeline is active
+  let cloudCostPoller: ReturnType<typeof setInterval> | null = null;
+  $: if (state.phase !== 'idle') {
+    if (!cloudCostPoller) {
+      fetchCloudCosts();
+      cloudCostPoller = setInterval(fetchCloudCosts, 5000);
+    }
+  } else if (cloudCostPoller) {
+    clearInterval(cloudCostPoller);
+    cloudCostPoller = null;
+  }
 
   // Auto-detect pipeline phase from project status on load
   let lastAutoSlug = '';
@@ -46,6 +75,7 @@
     unsub();
     ticketUnsub?.();
     if (costPoller) clearInterval(costPoller);
+    if (cloudCostPoller) clearInterval(cloudCostPoller);
   });
 
   // Show welcome state when no project is selected
@@ -194,8 +224,8 @@
           <span class="metric-sub">tickets{creatingActive ? '...' : ''}</span>
         {/if}
       </div>
-      {#if state.decompCost > 0}
-        <span class="cost-label">~${state.decompCost.toFixed(2)}</span>
+      {#if cloudCosts.decompose > 0}
+        <span class="cost-label">${cloudCosts.decompose.toFixed(3)}</span>
       {/if}
       {#if creatingActive}
         <div class="progress-bar">
@@ -239,7 +269,7 @@
           <span class="metric-sub">waiting</span>
         {/if}
       </div>
-      <span class="cost-label">$0.00</span>
+      <span class="cost-label">$0.00 <span class="cost-note">local</span></span>
       {#if state.codingCurrentId}
         <div class="current-ticket">
           <span class="current-label">Building:</span>

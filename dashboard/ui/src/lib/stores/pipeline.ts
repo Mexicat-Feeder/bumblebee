@@ -98,7 +98,7 @@ function createPipelineStore() {
     update(s => ({
       ...s,
       totalTickets: totalTickets || s.createdTickets,
-      decompCost: 0.03,
+      decompCost: 0,
       phase: 'committing',
     }));
     if (slug) {
