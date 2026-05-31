@@ -430,7 +430,7 @@ def commit_plan(
     for ticket in plan.tickets:
         try:
             conn.execute(
-                """INSERT OR IGNORE INTO tickets 
+                """INSERT OR REPLACE INTO tickets 
                    (id, owner, gate, status, depends_on, parent_ticket_id, updated_at)
                    VALUES (?,?,?,'todo',?,?,?)""",
                 (ticket.id, owner_lane, ticket.gate,
