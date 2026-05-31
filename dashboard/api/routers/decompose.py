@@ -152,6 +152,14 @@ def _make_llm_fn(base_url: str, model_id: str, api_key: str):
         choices = data.get("choices", [])
         if not choices:
             raise RuntimeError("LLM returned no choices")
+        # Track cloud usage
+        usage = data.get("usage")
+        if usage:
+            try:
+                from engine.cloud_usage import record_usage
+                record_usage(model_id, usage, phase="decompose")
+            except Exception:
+                pass
         return choices[0].get("message", {}).get("content", "")
 
     return llm_fn
@@ -176,6 +184,7 @@ def _make_streaming_llm(base_url: str, model_id: str, api_key: str):
             "temperature": temp,
             token_key: 32000,
             "stream": True,
+            "stream_options": {"include_usage": True},
         }
 
         with httpx.stream("POST", url, json=payload, headers=headers, timeout=600.0) as resp:
@@ -189,6 +198,14 @@ def _make_streaming_llm(base_url: str, model_id: str, api_key: str):
                     break
                 try:
                     chunk = json.loads(data)
+                    # Track usage from final chunk
+                    usage = chunk.get("usage")
+                    if usage:
+                        try:
+                            from engine.cloud_usage import record_usage
+                            record_usage(model_id, usage, phase="decompose")
+                        except Exception:
+                            pass
                     delta = chunk.get("choices", [{}])[0].get("delta", {})
                     text = delta.get("content", "")
                     if text:

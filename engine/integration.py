@@ -213,6 +213,15 @@ def run_integration(config: ProjectConfig, deliverable_root: Path | str) -> tupl
     elapsed = time.time() - start
     log.info("Integration API call completed in %.1fs", elapsed)
 
+    # Track cloud usage
+    usage = data.get("usage")
+    if usage:
+        try:
+            from .cloud_usage import record_usage
+            record_usage(model_id, usage, phase="integration")
+        except Exception as e:
+            log.warning("Failed to record cloud usage: %s", e)
+
     # Parse response - extract tool calls
     files_written = []
     message = data.get("choices", [{}])[0].get("message", {})

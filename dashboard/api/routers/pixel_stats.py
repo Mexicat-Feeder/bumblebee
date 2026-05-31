@@ -26,17 +26,50 @@ def _load_sessions(path: str) -> dict:
 @router.get("/pixel/stats")
 def pixel_stats():
     config = get_config()
-    sessions_path = config.get("pixelSessionsPath", _DEFAULT_SESSIONS_PATH)
     project_start = config.get("pixelProjectStart", None)
 
+    # Try local cloud-usage.json first (tracks decompose + integration calls)
+    bumblebee_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    usage_path = os.path.join(bumblebee_root, "cloud-usage.json")
+
+    # Also check demos/food-cart/ for project-specific usage
+    if not os.path.exists(usage_path):
+        for candidate in ["demos/food-cart/cloud-usage.json", "projects/food-cart/cloud-usage.json"]:
+            p = os.path.join(bumblebee_root, candidate)
+            if os.path.exists(p):
+                usage_path = p
+                break
+
+    if os.path.exists(usage_path):
+        try:
+            with open(usage_path, "r", encoding="utf-8") as f:
+                usage = json.load(f)
+            return {
+                "available": True,
+                "model": usage.get("model", "gpt-5.5"),
+                "modelRaw": usage.get("model", "gpt-5.5"),
+                "provider": usage.get("provider", "openai"),
+                "inputTokens": usage.get("input_tokens", 0),
+                "outputTokens": usage.get("output_tokens", 0),
+                "cacheRead": usage.get("cache_read_tokens", 0),
+                "cacheWrite": 0,
+                "totalTokens": usage.get("total_tokens", 0),
+                "contextTokens": 1000000,
+                "estimatedCostUsd": round(usage.get("estimated_cost_usd", 0), 4),
+                "sessionStartedAt": usage.get("started_at"),
+                "projectStart": project_start,
+                "phases": usage.get("phases", {}),
+            }
+        except Exception as e:
+            log.warning("Failed to read cloud usage: %s", e)
+
+    # Fallback to OpenClaw session data (for Gopo where Pixel runs)
+    sessions_path = config.get("pixelSessionsPath", _DEFAULT_SESSIONS_PATH)
     sessions = _load_sessions(sessions_path)
     if not sessions:
         return {"available": False}
 
-    # Primary: Telegram (main Pixel channel)
     session = sessions.get(_TELEGRAM_SESSION_KEY, {})
-
-    # Fallback: most recently updated session with token data
     if not session or not session.get("totalTokens"):
         candidates = [
             s for s in sessions.values()
@@ -50,11 +83,8 @@ def pixel_stats():
 
     model_raw = session.get("model", "unknown")
     provider = session.get("modelProvider", "unknown")
-
-    # Clean up model name for display (e.g. "claude-sonnet-4-6" -> "Claude Sonnet 4.6")
     model_display = model_raw
     if "claude" in model_raw:
-        # Replace last numeric segment hyphens with dots: sonnet-4-6 -> sonnet-4.6
         import re
         cleaned = re.sub(r'(\d+)-(\d+)$', r'\1.\2', model_raw)
         model_display = cleaned.replace("claude-", "Claude ").replace("-", " ").title()

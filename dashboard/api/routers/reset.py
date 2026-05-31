@@ -176,6 +176,18 @@ def reset_demo():
     results["research_cleared"] = _clear_research_db(str(db_path))
     results["reports_cleared"] = _clear_reports(str(root_path))
 
+    # Clear cloud usage tracking
+    for usage_path in [
+        _BUMBLEBEE_ROOT / "cloud-usage.json",
+        *[_BUMBLEBEE_ROOT / "demos" / s / "cloud-usage.json" for s in db_paths],
+        *[_BUMBLEBEE_ROOT / "projects" / s / "cloud-usage.json" for s in db_paths],
+    ]:
+        if usage_path.exists():
+            try:
+                usage_path.unlink()
+            except Exception:
+                pass
+
     # Reset project statuses back to qa_complete (ready for decompose)
     for p in projects:
         slug = p.get("slug", "")
