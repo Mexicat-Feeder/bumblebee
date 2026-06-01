@@ -44,7 +44,7 @@ async def startup():
 from fastapi.responses import RedirectResponse as _RedirectResponse
 
 # Map slugs to dev server ports
-_APP_PORTS = {"food-cart": 4177}
+_APP_PORTS = {"food-cart": 8000, "pomodoro-planner": 4200}
 
 @app.get("/app/{slug}")
 @app.get("/app/{slug}/{rest:path}")
