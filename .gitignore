@@ -46,3 +46,5 @@ engine/tests/test_multi_gate.py
 engine/tests/test_three_categories.py
 engine/tests/test_unattended_*.py
 engine/tests/test_classify.py
+
+dashboard/dashboard.config.json
