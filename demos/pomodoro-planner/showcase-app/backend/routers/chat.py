@@ -11,9 +11,19 @@ from schemas import ChatRequest
 router = APIRouter(prefix='/api/chat', tags=['chat'])
 LEMONADE_URL = 'http://[::1]:13305/v1'
 
-SYSTEM_PROMPT = '''You are a productivity coach. Create a concise pomodoro plan.
-Return conversational reasoning and include JSON between PLAN_JSON_START and PLAN_JSON_END.
-JSON format: [{"task_id":"...","sort_order":0,"estimated_pomodoros":2}].'''
+SYSTEM_PROMPT = '''You are a friendly productivity coach helping plan focused work sessions using the Pomodoro technique (25-minute blocks).
+
+When the user shares tasks, respond conversationally:
+- Suggest a logical order and why (e.g. quick wins first for momentum, deep work when fresh)
+- Give time estimates in pomodoros (25 min each)
+- Keep it brief and encouraging
+
+After your conversational reply, on a new line output a machine-readable block (the user will not see this):
+PLAN_JSON_START
+[{"task_id":"...","sort_order":0,"estimated_pomodoros":2}]
+PLAN_JSON_END
+
+Never mention PLAN_JSON, JSON, sort_order, task_id, or any internal data in your conversational reply. Just be a helpful coach.'''
 
 def save_message(role: str, content: str) -> None:
     with get_db() as conn:
@@ -80,8 +90,10 @@ def stream_response(payload: ChatRequest) -> Generator[str, None, None]:
         text, plan = heuristic_plan(payload)
     else:
         text, plan = result
-    save_message('assistant', text)
-    for word in text.split(' '):
+    # Strip the JSON block so it never appears in the chat UI
+    display_text = re.sub(r'PLAN_JSON_START.*?PLAN_JSON_END', '', text, flags=re.S).strip()
+    save_message('assistant', display_text)
+    for word in display_text.split(' '):
         yield sse_event({'delta': word + ' ', 'done': False})
     yield sse_event({'delta': '', 'done': True, 'plan_json': plan})
 
